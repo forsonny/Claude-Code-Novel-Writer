@@ -8,11 +8,12 @@
 - Python 3.6+ (for monitoring dashboard)
 - Sufficient storage space (recommended: 500MB minimum)
 
-### Quick Start (60 Seconds)
+### Quick Start (30 Seconds)
 
-1. **Initialize the System**
+1. **Clone the Repository**
    ```bash
-   ./launch-novel.sh
+   git clone https://github.com/forsonny/Claude-Code-Novel-Writer.git
+   cd Claude-Code-Novel-Writer
    ```
 
 2. **Start Novel Generation**
@@ -29,27 +30,21 @@ That's it! The system will now autonomously generate a complete 100,000-word fan
 
 ## 📋 Detailed Setup Guide
 
-### Step 1: Project Initialization
+### Step 1: Repository Clone
 
-Run the launch script to set up the complete project structure:
+Clone the complete system with all configurations ready:
 
 ```bash
-./launch-novel.sh
+git clone https://github.com/forsonny/Claude-Code-Novel-Writer.git
+cd Claude-Code-Novel-Writer
 ```
-
-This script will:
-- Create all necessary directories
-- Initialize progress tracking files
-- Set up world and character state files
-- Configure the monitoring system
-- Prepare the launch environment
 
 ### Step 2: System Verification
 
-After initialization, verify the project structure:
+After cloning, verify the project structure is complete:
 
 ```
-Claude Book Writer/
+Claude-Code-Novel-Writer/
 ├── CLAUDE.md                     # ✅ Master orchestrator
 ├── .claude/agents/               # ✅ All 5 sub-agents
 ├── planning/                     # ✅ Progress tracking
@@ -65,7 +60,7 @@ Claude Book Writer/
 Start the autonomous generation process:
 
 ```bash
-claude --dangerously-skip-permissions --continue -p "You are the MASTER ORCHESTRATOR. Read CLAUDE.md for your complete instructions. Begin autonomous novel generation immediately."
+claude --dangerously-skip-permissions --continue
 ```
 
 **Important Notes:**
@@ -227,8 +222,8 @@ Create custom sub-agents by:
 **Solutions**:
 - Verify `CLAUDE.md` exists and is properly formatted
 - Check that all sub-agent files are in `.claude/agents/`
-- Ensure launch script completed successfully
-- Try manual initialization: `./launch-novel.sh`
+- Ensure repository clone completed successfully
+- Try restarting Claude Code entirely
 
 #### Generation Stops Unexpectedly
 **Symptoms**: System stops generating content mid-novel
@@ -267,18 +262,21 @@ Create custom sub-agents by:
 #### Missing Files
 If critical files are missing:
 ```bash
-# Recreate directory structure
-mkdir -p .claude/agents manuscript/chapters planning worldbuilding characters automation
+# Verify complete clone
+git status
 
-# Regenerate initialization files
-./launch-novel.sh
+# Re-clone if necessary
+cd ..
+rm -rf Claude-Code-Novel-Writer
+git clone https://github.com/forsonny/Claude-Code-Novel-Writer.git
+cd Claude-Code-Novel-Writer
 ```
 
 #### Corrupted Progress Files
 If progress tracking appears corrupted:
 ```bash
-# Reset progress (will restart novel)
-./launch-novel.sh
+# Reset progress files to initial state
+git checkout -- planning/plot-progress.json planning/chapter-status.json
 
 # Or manually edit JSON files in planning/ directory
 ```
@@ -287,7 +285,7 @@ If progress tracking appears corrupted:
 If you encounter permission errors:
 ```bash
 # Make scripts executable
-chmod +x launch-novel.sh automation/dashboard.py
+chmod +x automation/dashboard.py
 
 # Check directory permissions
 ls -la .claude/
@@ -318,9 +316,8 @@ cat worldbuilding/world-state.json | python3 -m json.tool
 If the system becomes unstable:
 1. Stop the current session
 2. Back up any generated content
-3. Run initialization script: `./launch-novel.sh`
-4. Manually restore progress state if needed
-5. Restart generation
+3. Reset to clean state: `git checkout -- planning/`
+4. Restart generation
 
 ## 📈 Optimization Tips
 
@@ -342,7 +339,7 @@ If the system becomes unstable:
 
 1. **Gradual Changes**: Make small configuration adjustments
 2. **Test Settings**: Verify changes with short test runs
-3. **Backup Configs**: Save working configurations
+3. **Backup Configs**: Save working configurations before changes
 4. **Document Changes**: Keep notes on modifications
 
 ## 🎯 Success Metrics
@@ -377,6 +374,45 @@ Typical performance expectations:
 - Monitor dashboard for real-time insights
 - Check progress files for detailed status information
 
+### File Structure Reference
+```
+Claude-Code-Novel-Writer/
+├── CLAUDE.md                     # Master orchestrator configuration
+├── README.md                     # Project overview and quick start
+├── .claude/
+│   ├── agents/                   # Sub-agent configurations
+│   │   ├── scene-writer.md       # Prose generation specialist
+│   │   ├── plot-architect.md     # Story structure designer
+│   │   ├── worldbuilder.md       # Fantasy world creator
+│   │   ├── character-developer.md # Character creation expert
+│   │   └── continuity-editor.md  # Consistency maintenance
+│   ├── settings.json            # Automated hooks configuration
+│   └── context-injection.txt    # Dynamic system reminders
+├── manuscript/
+│   ├── chapters/                # Generated novel chapters
+│   └── metadata.json           # Novel metadata
+├── planning/                    # Progress tracking files
+│   ├── plot-progress.json       # Current story position
+│   ├── chapter-status.json      # Chapter completion tracking
+│   ├── novel-outline.json       # Story structure
+│   ├── scene-tracker.json       # Scene type management
+│   └── style-guide.json         # Writing style requirements
+├── worldbuilding/              # Fantasy world elements
+│   └── world-state.json        # World consistency tracking
+├── characters/                 # Character development
+│   └── character-knowledge.json # Character state tracking
+├── automation/                 # Monitoring and utilities
+│   ├── dashboard.py            # Real-time progress monitoring
+│   └── backup.sh              # Manual backup utility
+├── templates/                  # Reference templates
+│   ├── chapter-template.md     # Chapter structure guide
+│   └── character-sheet.md      # Character development template
+└── Documentation/              # Complete system documentation
+    ├── README.md               # System overview
+    ├── User-Guide.md           # This guide
+    └── System-Architecture.md  # Technical documentation
+```
+
 ---
 
-**The Fantasy Novel Writing System v3.0 is designed for autonomous operation. Trust the system, monitor the progress, and enjoy watching your novel come to life automatically.**
+**The Fantasy Novel Writing System v3.0 is designed for autonomous operation. Clone the repository, start generation, and enjoy watching your novel come to life automatically.**
