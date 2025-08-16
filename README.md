@@ -24,6 +24,7 @@ The Fantasy Novel Writing System v3.1 is a breakthrough **intelligent autonomous
 ```bash
 git clone https://github.com/forsonny/Claude-Code-Novel-Writer.git
 cd Claude-Code-Novel-Writer
+chmod +x *.sh automation/*.sh
 ```
 
 ### 2. Start Enhanced Generation
