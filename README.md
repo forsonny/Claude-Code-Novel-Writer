@@ -25,6 +25,8 @@ The Fantasy Novel Writing System v3.1 is a breakthrough **intelligent autonomous
 git clone https://github.com/forsonny/Claude-Code-Novel-Writer.git
 cd Claude-Code-Novel-Writer
 chmod +x *.sh automation/*.sh
+./launch-novel.sh
+./verify-system.sh
 ```
 
 ### 2. Start Enhanced Generation
@@ -34,7 +36,7 @@ claude --dangerously-skip-permissions
 
 ### 3. Monitor Real-Time Progress
 ```bash
-python3 automation/dashboard.py --monitor
+python automation/dashboard.py --monitor
 ```
 
 **That's it!** Your novel will be automatically generated with intelligent quality monitoring, adaptive planning, and self-healing capabilities.
@@ -334,6 +336,7 @@ Expected outcomes with v3.1:
 # Complete setup and launch
 git clone https://github.com/forsonny/Claude-Code-Novel-Writer.git
 cd Claude-Code-Novel-Writer
+chmod +x *.sh automation/*.sh
 claude --dangerously-skip-permissions
 
 # Monitor with enhanced dashboard
