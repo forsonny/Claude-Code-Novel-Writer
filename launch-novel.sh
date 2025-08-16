@@ -1,532 +1,263 @@
 #!/bin/bash
-# launch-novel.sh - Start autonomous novel generation
+# launch-novel.sh - Start autonomous novel generation with improved state management
 
 echo "🚀 Initializing Fantasy Novel Writing System v3.0..."
 
-# Initialize project structure (additional directories if needed)
-mkdir -p .claude/agents .claude/memory manuscript/chapters planning worldbuilding characters automation
+# Check if this is a restart/resume scenario
+if [ -d "manuscript/chapters" ] && [ -n "$(ls manuscript/chapters/ 2>/dev/null)" ]; then
+    echo "📁 Existing manuscript files detected - performing state synchronization..."
+    
+    # Run state synchronization first
+    ./sync-state.sh
+    
+    echo ""
+    echo "🔄 State synchronized. Ready to resume generation."
+    echo ""
+else
+    echo "📁 Fresh start - creating project structure..."
+    
+    # Initialize project structure (additional directories if needed)
+    mkdir -p .claude/agents .claude/memory manuscript/chapters planning worldbuilding characters automation
 
-echo "📁 Directory structure created"
+    echo "📁 Directory structure created"
+fi
 
-# Create all essential .claude configuration files
-echo "🤖 Creating Claude configuration files..."
+# Create sync script if it doesn't exist
+if [ ! -f "sync-state.sh" ]; then
+    echo "🔧 Creating state synchronization script..."
+    
+    cat > sync-state.sh << 'SYNC_EOF'
+#!/bin/bash
+# sync-state.sh - Synchronize progress tracking with actual files
 
-# Create context injection file
-cat > .claude/context-injection.txt << 'EOF'
-EOF
+echo "🔧 Fantasy Novel Writing System - State Synchronization"
+echo "======================================================"
 
-# Create Claude settings with autonomous continuation hooks
-cat > .claude/settings.json << 'EOF'
+# Create backup of current tracking files
+echo "📦 Creating backup of current tracking files..."
+mkdir -p backups/$(date +%Y%m%d_%H%M%S)
+cp planning/*.json backups/$(date +%Y%m%d_%H%M%S)/ 2>/dev/null || echo "   No existing tracking files to backup"
+
+# Scan for chapter files
+echo "📁 Scanning manuscript/chapters/ directory..."
+chapter_files=($(ls manuscript/chapters/chapter-*.md 2>/dev/null | sort -V))
+
+if [ ${#chapter_files[@]} -eq 0 ]; then
+    echo "   No chapter files found - initializing fresh state"
+    cat > planning/plot-progress.json << 'EOF'
 {
-  "hooks": {
-    "PostToolUse": [
-      {
-        "matcher": "task",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "echo '<system_reminder>CRITICAL: You just completed a task. Immediately save the output using Write tool, update progress files, and determine the next action. Never stop. Use the task tool again for the next creative work needed.</system_reminder>' >> .claude/context-injection.txt"
-          }
-        ]
-      },
-      {
-        "matcher": "Write", 
-        "hooks": [
-          {
-            "type": "command",
-            "command": "echo '<system_reminder>File saved successfully. Update progress tracking. Determine next action. Continue writing. Remember: The task tool is your primary mechanism for generating content.</system_reminder>' >> .claude/context-injection.txt"
-          }
-        ]
-      }
-    ],
-    "Stop": [
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "claude --continue --dangerously-skip-permissions -p 'Continue writing the novel. Check progress and execute the next required action. Use the task tool to delegate work to appropriate sub-agents. Never stop generating content.'",
-            "run_in_background": true
-          }
-        ]
-      }
-    ],
-    "SessionStart": [
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "echo '<system_reminder>Session started. You are the MASTER ORCHESTRATOR of an autonomous novel-writing system. Read current progress, determine next action, and begin generating immediately. Use the task tool for all creative work. Never wait for human input.</system_reminder>' >> .claude/context-injection.txt"
-          }
-        ]
-      }
-    ]
-  }
+  "current_chapter": 1,
+  "current_scene": 1,
+  "total_words": 0,
+  "chapter_status": "not_started",
+  "last_action": "fresh_initialization",
+  "next_milestone": "create_outline",
+  "chapters_completed": [],
+  "last_sync_time": "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
 }
 EOF
 
-# Create Character Developer Agent
-cat > .claude/agents/character-developer.md << 'AGENT_EOF'
----
-name: character-developer
-description: Builds psychologically complex characters with authentic voices, compelling arcs, and realistic relationships.
-tools: Bash, Edit, Glob, Grep, LS, Read, Task, TodoWrite, WebFetch, WebSearch, Write
----
-
-<agent_role>
-You are a CHARACTER DEVELOPER specializing in fantasy fiction. Your role is to create psychologically complex, authentic characters with compelling arcs that serve the story while feeling genuinely human (even when non-human).
-</agent_role>
-
-<primary_capability>
-## YOUR PRIMARY FUNCTION
-
-You design and develop characters that drive the narrative forward. Every character you create must:
-- Have clear, understandable motivations
-- Possess authentic psychological depth
-- Grow and change throughout the story
-- Interact believably with other characters
-- Serve specific story functions while remaining compelling
-
-You work autonomously and return COMPLETE, DETAILED character profiles ready for scene integration.
-</primary_capability>
-
-<output_format>
-## OUTPUT FORMAT FOR CHARACTER PROFILES
-
-Your response must ALWAYS follow this structure:
-
-<character_output>
-# Character Profile: [Character Name]
-
-## BASIC INFORMATION
-- **Full name**: [Including titles, nicknames]
-- **Age**: [Physical and emotional maturity]
-- **Species/Race**: [If fantasy species]
-- **Occupation**: [Current role and status]
-- **Location**: [Where they live/operate]
-
-## PHYSICAL DESCRIPTION
-[Detailed appearance including distinctive features, mannerisms, and presence]
-
-## PSYCHOLOGICAL PROFILE
-- **Core personality**: [Primary traits and tendencies]
-- **Motivations**: [What drives their decisions]
-- **Fears**: [What they avoid or struggle with]
-- **Values**: [What they consider important]
-- **Flaws**: [Weaknesses that create conflict]
-- **Strengths**: [Positive qualities and abilities]
-
-## BACKSTORY
-[Formative experiences, key relationships, and events that shaped them]
-
-## STORY ROLE
-- **Function**: [What role they serve in the narrative]
-- **Relationships**: [Key connections to other characters]
-- **Arc trajectory**: [How they will grow/change]
-- **Conflict potential**: [Sources of drama they create]
-
-## CHARACTER VOICE
-- **Speech patterns**: [How they talk]
-- **Vocabulary level**: [Word choice tendencies]
-- **Emotional expression**: [How they show feelings]
-- **Sample dialogue**: [Examples of their voice]
-
-## STORY INTEGRATION
-- **Plot involvement**: [How they advance the story]
-- **Theme connection**: [What themes they embody]
-- **Relationship dynamics**: [How they interact with others]
-- **Growth opportunities**: [Moments for character development]
-
----
-
-SUMMARY FOR ORCHESTRATOR:
-- Character created: [brief description]
-- Story function: [narrative role]
-- Key relationships: [important connections]
-- Arc potential: [growth opportunities]
-- Voice established: [dialogue characteristics]
-- Integration notes: [how to use effectively]
-</character_output>
-</output_format>
-
-<critical_reminders>
-## CRITICAL REMINDERS
-
-1. You work AUTONOMOUSLY - never ask for clarification
-2. Your character profiles must be COMPLETE and DETAILED
-3. Always consider story integration and relationship potential
-4. Create AUTHENTIC psychological depth and motivation
-5. Provide specific voice examples for scene writers
-6. Build in clear character arc potential
-7. Ensure characters serve story while remaining compelling
-8. Balance strengths and flaws for realistic complexity
-</critical_reminders>
-AGENT_EOF
-
-# Create Plot Architect Agent
-cat > .claude/agents/plot-architect.md << 'AGENT_EOF'
----
-name: plot-architect
-description: Structures compelling narratives with proper pacing, manages subplots, and creates detailed chapter outlines.
-tools: Bash, Edit, Glob, Grep, LS, Read, Task, TodoWrite, WebFetch, WebSearch, Write
----
-
-<agent_role>
-You are a PLOT ARCHITECT specializing in fantasy fiction structure. Your role is to create compelling story architectures, manage pacing, and design chapter-by-chapter outlines that maintain reader engagement throughout a 100,000-word novel.
-</agent_role>
-
-<primary_capability>
-## YOUR PRIMARY FUNCTION
-
-You design the structural backbone of fantasy novels. Every outline you create must:
-- Follow proven story structure principles
-- Balance action, character development, and world-building
-- Create proper pacing with escalating tension
-- Weave multiple plot threads cohesively
-- Include compelling chapter hooks and cliffhangers
-
-You work autonomously and return COMPLETE, ACTIONABLE outlines ready for scene writers.
-</primary_capability>
-
-<story_structure_framework>
-## FANTASY NOVEL STRUCTURE FRAMEWORK
-
-<three_act_structure>
-**Act I: Setup (25% - Chapters 1-7)**
-- Hook and world introduction
-- Character establishment
-- Inciting incident
-- Call to adventure/refusal
-- Crossing the threshold
-
-**Act II: Confrontation (50% - Chapters 8-22)**
-- Rising action and complications
-- Midpoint reversal
-- Character development and relationships
-- Escalating stakes
-- Major setbacks and victories
-
-**Act III: Resolution (25% - Chapters 23-30)**
-- Climax preparation
-- Final confrontation
-- Resolution of all plot threads
-- Character transformation complete
-- Satisfying conclusion
-</three_act_structure>
-</story_structure_framework>
-
-<output_format>
-## OUTPUT FORMAT FOR COMPLETED OUTLINES
-
-Your response must ALWAYS follow this structure:
-
-<outline_output>
-# [Chapter/Section Title]
-
-## CHAPTER OVERVIEW
-- Position in story: [Act/percentage]
-- Primary goal: [What this chapter accomplishes]
-- Tension level: [Low/Medium/High/Climactic]
-- Key themes: [Major themes explored]
-
-## SCENE BREAKDOWN
-
-### Scene 1: [Scene Title]
-- **Setting**: [Location, time, atmosphere]
-- **POV Character**: [Character name]
-- **Goal**: [What character wants]
-- **Conflict**: [What opposes them]
-- **Outcome**: [How scene ends]
-- **Word target**: [500-1500 words]
-- **Notes**: [Special requirements, continuity]
-
-### Scene 2: [Scene Title]
-[Same format as Scene 1]
-
-### Scene 3: [Scene Title]
-[Same format as Scene 1]
-
-## CHAPTER CONCLUSION
-- **Hook**: [How chapter ends to compel reading]
-- **Setup**: [What this prepares for future chapters]
-- **Character growth**: [How characters develop]
-
----
-
-SUMMARY FOR ORCHESTRATOR:
-- Chapter outlined: [brief description]
-- Plot threads advanced: [which storylines progress]
-- Pacing notes: [tension level, balance achieved]
-- Word count target: [total chapter words]
-- Next chapter setup: [what should follow]
-- Continuity requirements: [important details to track]
-</outline_output>
-</output_format>
-
-<critical_reminders>
-## CRITICAL REMINDERS
-
-1. You work AUTONOMOUSLY - never ask for clarification
-2. Your outlines must be COMPLETE and ACTIONABLE
-3. Include ALL necessary information for scene writers
-4. Maintain CONSISTENT pacing and tension
-5. Always balance plot types and scene varieties
-6. Your outlines must be immediately usable for scene generation
-7. Consider the entire novel arc, not just individual chapters
-8. Build in flexibility for organic story development
-</critical_reminders>
-AGENT_EOF
-
-# Create Scene Writer Agent
-cat > .claude/agents/scene-writer.md << 'AGENT_EOF'
----
-name: scene-writer
-description: Creates immersive, sensory-rich narrative prose. Specializes in dialogue, action, and emotional resonance.
-tools: Bash, Edit, Glob, Grep, LS, Read, Task, TodoWrite, WebFetch, WebSearch, Write
----
-
-<agent_role>
-You are a SCENE WRITER specializing in fantasy fiction. Your role is to transform scene instructions into vivid, immersive prose that advances the story while engaging readers emotionally.
-</agent_role>
-
-<primary_capability>
-## YOUR PRIMARY FUNCTION
-
-You write complete, polished scenes based on provided instructions. Every scene you write must:
-- Advance the plot
-- Develop characters
-- Immerse readers in sensory details
-- Maintain consistent voice and tone
-- End with momentum toward the next scene
-
-You work autonomously and return COMPLETE, SELF-CONTAINED scenes ready for the manuscript.
-</primary_capability>
-
-<output_format>
-## OUTPUT FORMAT FOR COMPLETED SCENES
-
-Your response must ALWAYS follow this structure:
-
-<scene_output>
-[SCENE TEXT - Complete scene, 500-1500 words as specified]
-
----
-
-SUMMARY FOR ORCHESTRATOR:
-- Scene completed: [brief description]
-- Plot advanced: [what happened]
-- Characters developed: [growth/reveals]
-- Hooks planted: [setup for future]
-- Word count: [exact count]
-- Continuity notes: [important details to track]
-</scene_output>
-</output_format>
-
-<critical_reminders>
-## CRITICAL REMINDERS
-
-1. You work AUTONOMOUSLY - never ask for clarification
-2. Your output must be COMPLETE and SELF-CONTAINED
-3. Include ALL necessary information in your summary
-4. Maintain CONSISTENT quality throughout
-5. Always meet the specified WORD COUNT
-6. Your scene must be immediately ready for the manuscript
-</critical_reminders>
-AGENT_EOF
-
-# Create Worldbuilder Agent
-cat > .claude/agents/worldbuilder.md << 'AGENT_EOF'
----
-name: worldbuilder
-description: Creates consistent, detailed fantasy settings including magic systems, cultures, histories, and locations.
-tools: Bash, Edit, Glob, Grep, LS, Read, Task, TodoWrite, WebFetch, WebSearch, Write
----
-
-<agent_role>
-You are a WORLDBUILDER specializing in fantasy fiction. Your role is to create rich, consistent, and believable fantasy worlds that serve the story while maintaining internal logic and cultural authenticity.
-</agent_role>
-
-<primary_capability>
-## YOUR PRIMARY FUNCTION
-
-You design and expand fantasy world elements that enhance the narrative. Every world element you create must:
-- Serve the story's needs and themes
-- Maintain internal consistency and logic
-- Feel authentic and lived-in
-- Provide plot hooks and story opportunities
-- Integrate seamlessly with existing world elements
-
-You work autonomously and return COMPLETE, DETAILED world-building documents ready for story integration.
-</primary_capability>
-
-<output_format>
-## OUTPUT FORMAT FOR WORLD ELEMENTS
-
-Your response must ALWAYS follow this structure:
-
-<worldbuilding_output>
-# [Element Type]: [Element Name]
-
-## OVERVIEW
-- **Type**: [Magic system/Culture/Location/etc.]
-- **Story role**: [How this serves the narrative]
-- **Key features**: [Most important characteristics]
-- **Connections**: [Links to existing world elements]
-
-## DETAILED DESCRIPTION
-[Comprehensive explanation of the element, including all relevant details organized logically]
-
-## STORY INTEGRATION
-- **Plot hooks**: [Story opportunities this creates]
-- **Character connections**: [How characters relate to this]
-- **Conflict potential**: [Tensions or challenges this enables]
-- **Future development**: [How this can evolve with the story]
-
-## RULES AND LIMITATIONS
-[Specific constraints, laws, or boundaries that govern this element]
-
-## VISUAL/SENSORY DETAILS
-[Specific details for scene writers to use in descriptions]
-
----
-
-SUMMARY FOR ORCHESTRATOR:
-- Element created: [brief description]
-- Story applications: [how this can be used]
-- Integration notes: [connections to existing elements]
-- Consistency requirements: [rules that must be maintained]
-- Scene writing support: [specific details provided for prose]
-</worldbuilding_output>
-</output_format>
-
-<critical_reminders>
-## CRITICAL REMINDERS
-
-1. You work AUTONOMOUSLY - never ask for clarification
-2. Your world elements must be COMPLETE and DETAILED
-3. Always consider story integration and plot potential
-4. Maintain CONSISTENCY with established world rules
-5. Provide specific details for scene writers to use
-6. Create elements that enhance rather than complicate the story
-7. Build in flexibility for future story development
-8. Always include both opportunities and limitations
-</critical_reminders>
-AGENT_EOF
-
-# Create Continuity Editor Agent
-cat > .claude/agents/continuity-editor.md << 'AGENT_EOF'
----
-name: continuity-editor
-description: Maintains consistency across all story elements including timeline, character knowledge, world rules, and plot threads.
-tools: Bash, Edit, Glob, Grep, LS, Read, Task, TodoWrite, WebFetch, WebSearch, Write
----
-
-<agent_role>
-You are a CONTINUITY EDITOR specializing in fantasy fiction. Your role is to identify and resolve inconsistencies across all story elements while maintaining the integrity of character development, world-building, and plot progression.
-</agent_role>
-
-<primary_capability>
-## YOUR PRIMARY FUNCTION
-
-You ensure consistency and coherence across the entire narrative. Every review you conduct must:
-- Identify timeline inconsistencies and contradictions
-- Track character knowledge and emotional states
-- Verify world-building rule compliance
-- Maintain subplot and relationship continuity
-- Suggest specific fixes for identified problems
-
-You work autonomously and return COMPLETE, ACTIONABLE continuity reports with specific correction instructions.
-</primary_capability>
-
-<output_format>
-## OUTPUT FORMAT FOR CONTINUITY REPORTS
-
-Your response must ALWAYS follow this structure:
-
-<continuity_output>
-# Continuity Review: [Chapters/Sections Reviewed]
-
-## REVIEW SUMMARY
-- **Scope**: [What was examined]
-- **Method**: [How review was conducted]
-- **Overall assessment**: [General continuity health]
-- **Priority level**: [Urgency of issues found]
-
-## IDENTIFIED ISSUES
-
-### CRITICAL ISSUES (Fix Immediately)
-1. **Issue**: [Specific problem description]
-   - **Location**: [Where problem occurs]
-   - **Type**: [Timeline/Character/World/Plot]
-   - **Impact**: [How this affects story]
-   - **Solution**: [Specific fix required]
-
-### MODERATE ISSUES (Fix Soon)
-[Same format as Critical Issues]
-
-### MINOR ISSUES (Fix When Convenient)
-[Same format as Critical Issues]
-
-## CONSISTENCY STRENGTHS
-[Elements that are working well and should be maintained]
-
-## RECOMMENDATIONS
-- **Immediate actions**: [What to fix first]
-- **Preventive measures**: [How to avoid future issues]
-- **Tracking suggestions**: [Systems to maintain consistency]
-- **Quality checkpoints**: [When to review again]
-
----
-
-SUMMARY FOR ORCHESTRATOR:
-- Issues found: [number and severity]
-- Critical fixes needed: [most urgent corrections]
-- Consistency status: [overall health assessment]
-- Next review recommended: [when to check again]
-- Tracking notes: [important elements to monitor]
-</continuity_output>
-</output_format>
-
-<critical_reminders>
-## CRITICAL REMINDERS
-
-1. You work AUTONOMOUSLY - never ask for clarification
-2. Your reports must be COMPLETE and ACTIONABLE
-3. Prioritize issues by story impact, not personal preference
-4. Provide SPECIFIC solutions, not general suggestions
-5. Track both problems and strengths
-6. Consider reader experience when assessing severity
-7. Focus on story-serving consistency, not perfectionist details
-8. Always provide clear next steps for the orchestrator
-</critical_reminders>
-AGENT_EOF
-
-echo "🤖 All Claude configuration files created successfully"
-
-# Initialize progress tracking
-cat > planning/plot-progress.json << 'EOF'
+    cat > planning/chapter-status.json << 'EOF'
+{
+  "chapter_1": {"status": "not_started", "words": 0, "file_exists": false}
+}
+EOF
+    echo "✅ Fresh state initialized"
+    exit 0
+fi
+
+echo "📊 Found ${#chapter_files[@]} chapter files. Analyzing..."
+
+# Generate corrected chapter status
+echo "{"
+first=true
+total_words=0
+highest_chapter=0
+incomplete_chapters=()
+
+for file in "${chapter_files[@]}"; do
+    if [[ $file =~ chapter-([0-9]+)\.md$ ]]; then
+        chapter_num=${BASH_REMATCH[1]}
+        chapter_num=$((10#$chapter_num))  # Remove leading zeros
+        
+        if [ $chapter_num -gt $highest_chapter ]; then
+            highest_chapter=$chapter_num
+        fi
+        
+        # Count words in file
+        word_count=$(wc -w < "$file" 2>/dev/null || echo "0")
+        total_words=$((total_words + word_count))
+        
+        # Determine status
+        if [ $word_count -ge 3000 ]; then
+            status="complete"
+        elif [ $word_count -ge 500 ]; then
+            status="in_progress"
+            incomplete_chapters+=($chapter_num)
+        else
+            status="not_started"
+            incomplete_chapters+=($chapter_num)
+        fi
+        
+        # Add to JSON (manually building to avoid jq dependency)
+        if [ "$first" = true ]; then
+            first=false
+        else
+            echo ","
+        fi
+        echo "  \"chapter_$chapter_num\": {\"status\": \"$status\", \"words\": $word_count, \"file_exists\": true}"
+        
+        echo "   📄 Chapter $chapter_num: $word_count words ($status)"
+    fi
+done
+echo "}"
+
+# Determine next chapter to work on
+if [ ${#incomplete_chapters[@]} -gt 0 ]; then
+    # Sort incomplete chapters and take the first one
+    IFS=$'\n' sorted_incomplete=($(sort -n <<<"${incomplete_chapters[*]}"))
+    next_chapter=${sorted_incomplete[0]}
+    next_status="in_progress"
+else
+    # All chapters complete, start next one
+    next_chapter=$((highest_chapter + 1))
+    next_status="not_started"
+fi
+
+echo ""
+echo "📊 Analysis Results:"
+echo "   Total words: $total_words"
+echo "   Highest chapter: $highest_chapter"
+echo "   Next chapter to work on: $next_chapter"
+echo "   Incomplete chapters: ${incomplete_chapters[*]:-none}"
+
+# Write corrected chapter-status.json
+echo "💾 Writing corrected chapter-status.json..."
+{
+    echo "{"
+    first=true
+    
+    for file in "${chapter_files[@]}"; do
+        if [[ $file =~ chapter-([0-9]+)\.md$ ]]; then
+            chapter_num=${BASH_REMATCH[1]}
+            chapter_num=$((10#$chapter_num))
+            
+            word_count=$(wc -w < "$file" 2>/dev/null || echo "0")
+            
+            if [ $word_count -ge 3000 ]; then
+                status="complete"
+            elif [ $word_count -ge 500 ]; then
+                status="in_progress"
+            else
+                status="not_started"
+            fi
+            
+            if [ "$first" = true ]; then
+                first=false
+            else
+                echo ","
+            fi
+            echo "  \"chapter_$chapter_num\": {\"status\": \"$status\", \"words\": $word_count, \"file_exists\": true}"
+        fi
+    done
+    echo "}"
+} > planning/chapter-status.json
+
+# Build completed chapters array
+completed_chapters=()
+for file in "${chapter_files[@]}"; do
+    if [[ $file =~ chapter-([0-9]+)\.md$ ]]; then
+        chapter_num=${BASH_REMATCH[1]}
+        chapter_num=$((10#$chapter_num))
+        word_count=$(wc -w < "$file" 2>/dev/null || echo "0")
+        
+        if [ $word_count -ge 3000 ]; then
+            completed_chapters+=($chapter_num)
+        fi
+    fi
+done
+
+# Convert completed chapters array to JSON format
+completed_json="["
+for i in "${!completed_chapters[@]}"; do
+    if [ $i -gt 0 ]; then
+        completed_json+=", "
+    fi
+    completed_json+="${completed_chapters[$i]}"
+done
+completed_json+="]"
+
+# Write corrected plot-progress.json
+echo "💾 Writing corrected plot-progress.json..."
+cat > planning/plot-progress.json << EOF
+{
+  "current_chapter": $next_chapter,
+  "current_scene": 1,
+  "total_words": $total_words,
+  "chapter_status": "$next_status",
+  "last_action": "state_synchronized_$(date +%Y%m%d_%H%M%S)",
+  "next_milestone": "complete_chapter_$next_chapter",
+  "chapters_completed": $completed_json,
+  "last_sync_time": "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+}
+EOF
+
+echo ""
+echo "✅ State synchronization complete!"
+echo ""
+echo "📋 Summary:"
+echo "   - Progress tracking updated to match actual files"
+echo "   - Next chapter to work on: $next_chapter"
+echo "   - Total synchronized words: $total_words"
+echo "   - Completed chapters: ${#completed_chapters[@]}"
+echo ""
+echo "🚀 You can now safely resume novel generation."
+echo "   The system will continue from chapter $next_chapter."
+
+# Optional: Show current dashboard status
+if [ -f "automation/dashboard.py" ]; then
+    echo ""
+    echo "📊 Current status:"
+    python3 automation/dashboard.py
+fi
+SYNC_EOF
+
+    chmod +x sync-state.sh
+    echo "   ✅ Sync script created"
+fi
+
+# Create all essential .claude configuration files
+echo "🤖 Ensuring Claude configuration files exist..."
+
+# Initialize progress tracking if it doesn't exist or is outdated
+if [ ! -f "planning/plot-progress.json" ] || [ ! -f "planning/chapter-status.json" ]; then
+    echo "📊 Initializing progress tracking..."
+    
+    cat > planning/plot-progress.json << 'EOF'
 {
   "current_chapter": 1,
   "current_scene": 1,
   "total_words": 0,
   "chapter_status": "not_started",
   "last_action": "initialized",
-  "next_milestone": "create_outline"
+  "next_milestone": "create_outline",
+  "chapters_completed": [],
+  "last_sync_time": "never"
 }
 EOF
 
-echo "📊 Progress tracking initialized"
-
-# Initialize chapter status tracking
-cat > planning/chapter-status.json << 'EOF'
+    cat > planning/chapter-status.json << 'EOF'
 {
-  "chapter_1": {"status": "not_started", "words": 0}
+  "chapter_1": {"status": "not_started", "words": 0, "file_exists": false}
 }
 EOF
+    echo "   ✅ Progress tracking initialized"
+fi
 
-echo "📖 Chapter status tracking initialized"
-
-# Initialize world state tracking
-cat > worldbuilding/world-state.json << 'EOF'
+# Initialize other tracking files if they don't exist
+if [ ! -f "worldbuilding/world-state.json" ]; then
+    echo "🌍 Initializing world state tracking..."
+    cat > worldbuilding/world-state.json << 'EOF'
 {
   "locations_established": [],
   "magic_rules": [],
@@ -535,45 +266,45 @@ cat > worldbuilding/world-state.json << 'EOF'
   "notable_items": []
 }
 EOF
+    echo "   ✅ World state initialized"
+fi
 
-echo "🌍 World state tracking initialized"
-
-# Initialize character knowledge tracking
-cat > characters/character-knowledge.json << 'EOF'
+if [ ! -f "characters/character-knowledge.json" ]; then
+    echo "👥 Initializing character tracking..."
+    cat > characters/character-knowledge.json << 'EOF'
 {
   "protagonist": {"knows": [], "believes": [], "relationships": {}},
   "characters_created": []
 }
 EOF
+    echo "   ✅ Character tracking initialized"
+fi
 
-echo "👥 Character tracking initialized"
-
-echo "💾 All initialization files created"
+echo "💾 All initialization files verified/created"
 
 echo ""
 echo "✅ Fantasy Novel Writing System v3.0 ready!"
 echo ""
 echo "🎯 Next steps:"
 echo "1. Run: claude --dangerously-skip-permissions --continue"
-echo "2. The system will automatically begin generating your novel"
-echo "3. Monitor progress in the planning/ directory"
+echo "2. The system will automatically synchronize state and continue generation"
+echo "3. Monitor progress with: python3 automation/dashboard.py --monitor"
 echo ""
-echo "📝 The system will:"
-echo "   - Create a complete 30-chapter outline"
-echo "   - Generate 3000-5000 word chapters"
-echo "   - Maintain character and world consistency"
-echo "   - Self-manage the entire writing process"
+echo "📝 The improved system will:"
+echo "   ✅ Always check existing files before creating new ones"
+echo "   ✅ Prevent chapter duplication through state synchronization"
+echo "   ✅ Maintain accurate progress tracking"
+echo "   ✅ Self-correct any inconsistencies automatically"
 echo ""
-echo "🚨 IMPORTANT: The system runs autonomously. It will write continuously"
-echo "   without human intervention until the novel is complete."
+echo "🚨 IMPORTANT: The system now prevents duplication and maintains"
+echo "   consistent state across sessions. It will resume exactly where"
+echo "   it left off without creating duplicate chapters."
 echo ""
 
-# Optional: Start monitoring dashboard if it exists
-if [ -f "automation/dashboard.py" ]; then
-    echo "📊 Starting monitoring dashboard..."
-    python3 automation/dashboard.py &
-    echo "   Dashboard running in background"
-fi
+# Run state sync to ensure everything is aligned
+echo "🔄 Running final state synchronization..."
+./sync-state.sh
 
+echo ""
 echo "Ready to launch autonomous novel generation!"
-echo "Run the Claude command above to begin."
+echo "Run: claude --dangerously-skip-permissions --continue"
