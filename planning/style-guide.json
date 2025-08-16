@@ -1,0 +1,15 @@
+{
+  "voice": "third_person_limited",
+  "tense": "past",
+  "pov_character": "protagonist",
+  "tone": "grounded, immediate prose",
+  "style_notes": [
+    "spare, efficient language",
+    "avoid overly ornate metaphors", 
+    "character-driven tension",
+    "natural dialogue",
+    "understated emotion"
+  ],
+  "chapter_target_words": 3000,
+  "scene_break_marker": "***"
+}

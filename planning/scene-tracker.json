@@ -1,0 +1,11 @@
+{
+  "scenes": {},
+  "scene_types": {
+    "action": "high-energy, plot-advancing scenes",
+    "dialogue": "character interaction and development", 
+    "introspection": "internal character moments",
+    "description": "world-building and setting establishment",
+    "transition": "bridging scenes between major events"
+  },
+  "pacing_notes": "Balance action, dialogue, and introspection for optimal flow"
+}
