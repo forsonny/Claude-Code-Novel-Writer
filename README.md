@@ -16,19 +16,19 @@ The Fantasy Novel Writing System v3.1 is a breakthrough **intelligent autonomous
 - 🛡️ **Self-Healing**: Automatic error detection, diagnosis, and recovery
 - 📊 **Performance Tracking**: Continuous monitoring and optimization
 - 🎯 **Enhanced Agents**: Seven specialized sub-agents for different aspects
-- ⚡ **One-Command Launch**: Complete setup with enhanced features in under 60 seconds
+- ⚡ **One-Command Launch**: Complete setup in under 60 seconds
 
 ## 🚀 Quick Start
 
-### 1. Initialize Enhanced System
+### 1. Clone and Setup
 ```bash
-./launch-novel.sh
-./setup-enhancements.sh  # NEW: Install advanced features
+git clone https://github.com/forsonny/Claude-Code-Novel-Writer.git
+cd Claude-Code-Novel-Writer
 ```
 
 ### 2. Start Enhanced Generation
 ```bash
-claude --dangerously-skip-permissions --continue
+claude --dangerously-skip-permissions
 ```
 
 ### 3. Monitor Real-Time Progress
@@ -43,7 +43,7 @@ python3 automation/dashboard.py --monitor
 ### Master Orchestrator
 Central intelligence with **enhanced decision-making** that coordinates the entire novel creation process through intelligent assessment, adaptive planning, quality monitoring, and error recovery.
 
-### Specialized Sub-Agents (Now 7 Total)
+### Specialized Sub-Agents (7 Total)
 
 | Agent | Purpose | Enhanced Features |
 |-------|---------|-------------------|
@@ -83,7 +83,7 @@ The system now **automatically monitors and adapts** quality standards:
 ## 📁 Enhanced Project Structure
 
 ```
-Claude Book Writer/
+Claude-Code-Novel-Writer/
 ├── CLAUDE.md                    # Enhanced master orchestrator
 ├── .claude/
 │   ├── agents/                  # 7 specialized sub-agents
@@ -325,16 +325,15 @@ Expected outcomes with v3.1:
 
 **The Fantasy Novel Writing System v3.1 represents the pinnacle of autonomous creative AI, delivering complete, publication-ready fantasy novels through advanced prompt engineering, intelligent monitoring, and self-healing system architecture.**
 
-*Ready to generate your enhanced novel? Run `./launch-novel.sh && ./setup-enhancements.sh` and watch the intelligent magic happen!* ✨
+*Ready to generate your enhanced novel? Clone the repository and start writing!* ✨
 
 ## 🚀 Quick Setup Commands
 
 ```bash
-# Complete enhanced setup
-git clone [your-repo] && cd Claude\ Book\ Writer
-./launch-novel.sh
-./setup-enhancements.sh
-claude --dangerously-skip-permissions --continue
+# Complete setup and launch
+git clone https://github.com/forsonny/Claude-Code-Novel-Writer.git
+cd Claude-Code-Novel-Writer
+claude --dangerously-skip-permissions
 
 # Monitor with enhanced dashboard
 python3 automation/dashboard.py --monitor

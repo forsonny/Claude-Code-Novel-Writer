@@ -70,13 +70,13 @@ The system centers around a **Master Orchestrator** (`CLAUDE.md`) that:
 
 ### Monitoring Tools
 - **Dashboard**: `automation/dashboard.py` - Real-time progress monitoring
-- **Launch Script**: `launch-novel.sh` - One-command system initialization
 
 ## 🚀 Quick Start Guide
 
-### 1. Initialize System
+### 1. Clone Repository
 ```bash
-./launch-novel.sh
+git clone https://github.com/forsonny/Claude-Code-Novel-Writer.git
+cd Claude-Code-Novel-Writer
 ```
 
 ### 2. Start Novel Generation
@@ -162,7 +162,7 @@ while (novel_not_complete) {
 ## 📁 Project Structure
 
 ```
-Claude Book Writer/
+Claude-Code-Novel-Writer/
 ├── CLAUDE.md                     # Master orchestrator configuration
 ├── .claude/
 │   ├── agents/                   # Sub-agent configurations
@@ -179,7 +179,6 @@ Claude Book Writer/
 ├── characters/                 # Character profiles and knowledge
 ├── automation/
 │   └── dashboard.py            # Progress monitoring dashboard
-├── launch-novel.sh             # System initialization script
 └── Documentation/              # System documentation
 ```
 
@@ -235,7 +234,7 @@ The system is designed to achieve:
 ### System Not Starting
 - Verify all configuration files are present
 - Check `.claude/agents/` directory has all sub-agent files
-- Ensure `launch-novel.sh` has executed successfully
+- Ensure proper file permissions are set
 
 ### Generation Stops
 - System includes auto-restart hooks to prevent stopping
@@ -247,13 +246,124 @@ The system is designed to achieve:
 - Manual consistency check: Task continuity-editor with specific concerns
 - Review `/planning/` files for tracking accuracy
 
-## 📚 Further Reading
+### Low Quality Output
+- Review quality standards in sub-agent configurations
+- Ensure word count targets are appropriate
+- Check that progress tracking is accurate
+- Consider modifying agent instructions for higher standards
 
-- **CLAUDE.md**: Complete master orchestrator configuration
-- **Agent Files**: Detailed sub-agent specifications in `.claude/agents/`
-- **Progress Files**: Real-time status in `/planning/` directory
-- **Dashboard**: Run `python3 automation/dashboard.py` for live monitoring
+### Performance Issues
+- Reduce monitoring frequency
+- Close unnecessary applications
+- Ensure adequate system resources
+- Consider reducing simultaneous background processes
+
+### File System Issues
+
+#### Missing Files
+If critical files are missing:
+```bash
+# Recreate directory structure
+mkdir -p .claude/agents manuscript/chapters planning worldbuilding characters automation
+```
+
+#### Corrupted Progress Files
+If progress tracking appears corrupted:
+```bash
+# Reset progress (will restart novel)
+# Manually edit JSON files in planning/ directory
+```
+
+#### Permission Problems
+If you encounter permission errors:
+```bash
+# Make scripts executable
+chmod +x automation/dashboard.py
+```
+
+### Advanced Troubleshooting
+
+#### Debug Mode
+Enable detailed logging by adding debug flags:
+```bash
+claude --continue --dangerously-skip-permissions --verbose
+```
+
+#### Manual State Inspection
+Examine system state manually:
+```bash
+# Check current progress
+cat planning/plot-progress.json | python3 -m json.tool
+
+# Review chapter status
+cat planning/chapter-status.json | python3 -m json.tool
+
+# Examine world state
+cat worldbuilding/world-state.json | python3 -m json.tool
+```
+
+#### Recovery Procedures
+If the system becomes unstable:
+1. Stop the current session
+2. Back up any generated content
+3. Manually restore progress state if needed
+4. Restart generation
+
+## 📈 Optimization Tips
+
+### Maximizing Quality
+
+1. **Let the System Run**: Avoid interrupting the generation process
+2. **Monitor Regularly**: Use the dashboard to track progress and quality
+3. **Trust the Process**: The system self-corrects and improves over time
+4. **Review Settings**: Adjust quality standards if needed
+
+### Performance Optimization
+
+1. **Dedicated Environment**: Run on a dedicated system if possible
+2. **Minimal Background**: Close unnecessary applications
+3. **Adequate Storage**: Ensure sufficient disk space
+4. **Stable Connection**: Maintain reliable internet for AI access
+
+### Customization Best Practices
+
+1. **Gradual Changes**: Make small configuration adjustments
+2. **Test Settings**: Verify changes with short test runs
+3. **Backup Configs**: Save working configurations
+4. **Document Changes**: Keep notes on modifications
+
+## 🎯 Success Metrics
+
+### Quality Indicators
+
+Monitor these metrics for optimal results:
+- **Word Count Progress**: Steady advancement toward 100,000 words
+- **Chapter Completion**: Regular chapter finishing (every 1-2 hours)
+- **Consistency Score**: Minimal continuity errors
+- **Quality Standards**: Meeting all automated quality checks
+
+### Performance Benchmarks
+
+Typical performance expectations:
+- **Generation Speed**: 3,000-5,000 words per hour
+- **Chapter Completion**: 1 chapter per 1-2 hours
+- **Error Rate**: <1% requiring manual intervention
+- **Completion Time**: 20-40 hours for full novel
+
+## 📚 Additional Resources
+
+### System Files Reference
+- **CLAUDE.md**: Master orchestrator configuration and instructions
+- **.claude/agents/**: Complete sub-agent specifications
+- **planning/**: Progress tracking and status files
+- **Documentation/**: Comprehensive system documentation
+
+### Support and Community
+- Review system architecture documentation for deep understanding
+- Examine agent configurations for customization guidance
+- Monitor dashboard for real-time insights
+- Check progress files for detailed status information
 
 ---
 
-**The Fantasy Novel Writing System v3.0 represents the cutting edge of autonomous creative AI, combining advanced prompt engineering with robust system architecture to deliver complete, high-quality novels without human intervention.**
+**The Fantasy Novel Writing System v3.0 is designed for autonomous operation. Trust the system, monitor the progress, and enjoy watching your novel come to life automatically.**
