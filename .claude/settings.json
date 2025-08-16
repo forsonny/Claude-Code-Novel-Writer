@@ -6,42 +6,32 @@
         "hooks": [
           {
             "type": "command",
-            "command": "echo '<system_reminder>TASK COMPLETED: You just completed a task. IMMEDIATELY: 1) Use Write tool to save the output, 2) Use LS to check existing files for duplicates, 3) Read and update progress files to match reality, 4) Determine next action. CRITICAL: NEVER create duplicate chapters. Check what exists first with LS manuscript/chapters/.</system_reminder>' >> .claude/context-injection.txt"
+            "command": "echo \"Task completed at $(date +%Y-%m-%d_%H:%M:%S)\" >> automation/task.log"
           }
         ]
       },
       {
-        "matcher": "Write", 
+        "matcher": "Write",
         "hooks": [
           {
             "type": "command",
-            "command": "echo '<system_reminder>FILE SAVED: File saved successfully. NEXT STEPS: 1) Check if this chapter is now complete (>3000 words), 2) Update chapter-status.json with actual word count, 3) Update plot-progress.json with current position, 4) Use LS to verify file structure and check for duplicates, 5) Continue to next action. PREVENT DUPLICATION.</system_reminder>' >> .claude/context-injection.txt"
+            "command": "bash -c 'if [[ \"$1\" =~ manuscript/chapters/chapter-.*\\.md ]]; then automation/quality-check.sh; fi' -- \"$(cat /tmp/last_written_file 2>/dev/null)\"",
+            "comment": "Run quality check only on chapter files"
           },
           {
             "type": "command",
-            "command": "if [ -x automation/quality-check.sh ]; then automation/quality-check.sh; fi"
-          },
-          {
-            "type": "command",
-            "command": "if [ -x automation/duplicate-checker.sh ]; then automation/duplicate-checker.sh; fi"
+            "command": "automation/auto-sync-progress.sh",
+            "comment": "Automatically sync progress after writes"
           }
         ]
       },
       {
-        "matcher": "LS",
+        "matcher": "chapter-writer",
         "hooks": [
           {
             "type": "command",
-            "command": "echo '<system_reminder>FILES LISTED: File listing complete. Use this information to: 1) Identify highest existing chapter number, 2) Check for gaps or duplicates in chapter sequence, 3) Update progress tracking to match reality, 4) Determine next chapter to work on. NEVER create files that already exist with substantial content (>2000 words). If duplicates found, resolve immediately.</system_reminder>' >> .claude/context-injection.txt"
-          }
-        ]
-      },
-      {
-        "matcher": "Read",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "echo '<system_reminder>CONTENT READ: Content read successfully. If this was a progress file or chapter file: 1) Note actual word counts and status, 2) Identify any discrepancies with tracking, 3) Plan corrections to align tracking with reality, 4) Never duplicate existing substantial content (>2000 words). Cross-reference with LS results.</system_reminder>' >> .claude/context-injection.txt"
+            "command": "automation/chapter-completed.sh",
+            "comment": "Handle chapter completion tasks"
           }
         ]
       }
@@ -51,15 +41,31 @@
         "hooks": [
           {
             "type": "command",
-            "command": "if [ -x automation/system-health-check.sh ]; then automation/system-health-check.sh; fi"
-          },
+            "command": "automation/session-init.sh",
+            "comment": "Comprehensive session initialization"
+          }
+        ]
+      }
+    ],
+    "PreCompact": [
+      {
+        "matcher": "auto",
+        "hooks": [
           {
             "type": "command",
-            "command": "if [ -x automation/duplicate-checker.sh ]; then automation/duplicate-checker.sh; fi"
-          },
+            "command": "automation/pre-compact-backup.sh",
+            "comment": "Backup before auto-compacting"
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
           {
             "type": "command",
-            "command": "echo '<system_reminder>SESSION STARTED: You are the MASTER ORCHESTRATOR. FIRST ACTION: Read context injection for system status, use LS manuscript/chapters/ to check for duplicates, synchronize state by reading progress files, update tracking to match reality. Then continue novel generation. CRITICAL: Never duplicate existing chapters with substantial content.</system_reminder>' >> .claude/context-injection.txt"
+            "command": "automation/session-summary.sh",
+            "comment": "Generate session summary"
           }
         ]
       }
