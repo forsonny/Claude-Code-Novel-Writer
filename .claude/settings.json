@@ -6,7 +6,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "echo '<system_reminder>CRITICAL: You just completed a task. Immediately save the output using Write tool, update progress files, and determine the next action. Never stop. Use the task tool again for the next creative work needed.</system_reminder>' >> .claude/context-injection.txt"
+            "command": "echo '<system_reminder>CRITICAL: You just completed a task. IMMEDIATELY: 1) Use Write tool to save the output, 2) Use LS to check existing files, 3) Read and update progress files to match reality, 4) Determine next action. NEVER create duplicate chapters. Check what exists first.</system_reminder>' >> .claude/context-injection.txt"
           }
         ]
       },
@@ -15,7 +15,25 @@
         "hooks": [
           {
             "type": "command",
-            "command": "echo '<system_reminder>File saved successfully. Update progress tracking. Determine next action. Continue writing. Remember: The task tool is your primary mechanism for generating content.</system_reminder>' >> .claude/context-injection.txt"
+            "command": "echo '<system_reminder>File saved successfully. NEXT STEPS: 1) Check if this chapter is now complete (>3000 words), 2) Update chapter-status.json with actual word count, 3) Update plot-progress.json with current position, 4) Use LS to verify file structure, 5) Continue to next action. PREVENT DUPLICATION.</system_reminder>' >> .claude/context-injection.txt"
+          }
+        ]
+      },
+      {
+        "matcher": "LS",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "echo '<system_reminder>File listing complete. Use this information to: 1) Identify highest existing chapter number, 2) Check for gaps or duplicates, 3) Update progress tracking to match reality, 4) Determine next chapter to work on. Never create files that already exist with substantial content.</system_reminder>' >> .claude/context-injection.txt"
+          }
+        ]
+      },
+      {
+        "matcher": "Read",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "echo '<system_reminder>Content read successfully. If this was a progress file or chapter file: 1) Note actual word counts and status, 2) Identify any discrepancies with tracking, 3) Plan corrections to align tracking with reality, 4) Never duplicate existing substantial content (>2000 words).</system_reminder>' >> .claude/context-injection.txt"
           }
         ]
       }
@@ -25,7 +43,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "claude --continue --dangerously-skip-permissions -p 'Continue writing the novel. Check progress and execute the next required action. Use the task tool to delegate work to appropriate sub-agents. Never stop generating content.'",
+            "command": "claude --continue --dangerously-skip-permissions -p 'CRITICAL: Start with state synchronization. Use LS to check existing chapters, Read progress files, update tracking to match reality, then continue novel generation. Never duplicate existing work. Check files first, then proceed with next required chapter.'",
             "run_in_background": true
           }
         ]
@@ -36,7 +54,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "echo '<system_reminder>Session started. You are the MASTER ORCHESTRATOR of an autonomous novel-writing system. Read current progress, determine next action, and begin generating immediately. Use the task tool for all creative work. Never wait for human input.</system_reminder>' >> .claude/context-injection.txt"
+            "command": "echo '<system_reminder>Session started. You are the MASTER ORCHESTRATOR. FIRST ACTION: Synchronize state by using LS manuscript/chapters/, Read progress files, update tracking to match reality. Then continue novel generation. CRITICAL: Never duplicate existing chapters with substantial content.</system_reminder>' >> .claude/context-injection.txt"
           }
         ]
       }
