@@ -1,0 +1,49 @@
+# Temporary files
+*.tmp
+*.temp
+~*
+.DS_Store
+Thumbs.db
+
+# Editor files
+*.swp
+*.swo
+*~
+
+# Backup files
+*.bak
+*.backup
+
+# Log files
+*.log
+
+# Node modules (if using any JS tools)
+node_modules/
+
+# Python cache (if using any Python tools)
+__pycache__/
+*.pyc
+*.pyo
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# IDE files
+.vscode/settings.json
+.idea/
+*.sublime-workspace
+
+# Personal notes that shouldn't be shared
+/personal-notes/
+/drafts-private/
+
+!.claude/
+
+# NOTE: .claude folder is intentionally NOT ignored
+# This ensures Claude-related files are tracked in version control
