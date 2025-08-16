@@ -34,7 +34,17 @@ chmod +x *.sh automation/*.sh
 claude --dangerously-skip-permissions
 ```
 
-### 3. Monitor Real-Time Progress
+### 3. Start Enhanced Generation
+Save output-styles/autonomous-novelist.md file to 
+```bash
+c~/.claude/output-styles/
+```
+Inside Claude Code run command and pick Autonomous Novelist
+```bash
+/output-style
+```
+
+### 4. Monitor Real-Time Progress
 ```bash
 python automation/dashboard.py --monitor
 ```
