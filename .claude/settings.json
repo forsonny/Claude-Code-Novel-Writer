@@ -20,6 +20,10 @@
           {
             "type": "command",
             "command": "automation/quality-check.sh"
+          },
+          {
+            "type": "command",
+            "command": "automation/performance-monitor.sh"
           }
         ]
       },
@@ -51,6 +55,10 @@
           },
           {
             "type": "command",
+            "command": "automation/performance-monitor.sh"
+          },
+          {
+            "type": "command",
             "command": "claude --continue --dangerously-skip-permissions -p 'CRITICAL: Start with state synchronization. Use LS to check existing chapters, Read progress files, update tracking to match reality, then continue novel generation. Never duplicate existing work. Check files first, then proceed with next required chapter.'",
             "run_in_background": true
           }
@@ -63,6 +71,10 @@
           {
             "type": "command",
             "command": "automation/system-health-check.sh"
+          },
+          {
+            "type": "command",
+            "command": "automation/performance-monitor.sh"
           },
           {
             "type": "command",
