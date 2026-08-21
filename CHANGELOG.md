@@ -1,5 +1,43 @@
 # Changelog
 
+## 4.1.0 - 2026-08-21
+
+### Shared multi-harness core
+
+- Added root `AGENTS.md` as the canonical project instruction file.
+- Added canonical specialist definitions under `.agents/roles/`.
+- Added canonical Agent Skills workflows under `.agents/skills/`.
+- Changed `CLAUDE.md` to import `AGENTS.md` and keep only Claude-specific adapter notes.
+- Replaced full Claude role and skill copies with thin adapters to the shared core.
+
+### OpenAI Codex
+
+- Added `.codex/config.toml` with bounded multi-agent concurrency.
+- Added seven project custom agents under `.codex/agents/`.
+- Added `.codex/hooks.json` for session start, chapter completion, pre-compaction backup, and session-end logging.
+- Added a JSON-safe Codex `SubagentStop` adapter for chapter maintenance.
+- Documented `$skill-name`, `/skills`, `/agent`, and `/hooks` usage.
+
+### Pi
+
+- Added native discovery through `.agents/skills/`.
+- Added `.pi/prompts/` templates for short `/plan-novel`, `/write-chapter`, `/continuity-pass`, `/revise-chapter`, and `/finalize-manuscript` commands.
+- Added direct canonical-role fallback so Pi works without a third-party subagent extension.
+- Documented `/skill:<name>` invocation and project trust.
+
+### Automation and validation
+
+- Generalized session temporary-file names beyond Claude Code.
+- Expanded system health and verification across Claude Code, Codex, and Pi.
+- Added JSON and TOML validation for harness configuration.
+- Updated the launcher to detect all three supported CLIs.
+
+### Documentation
+
+- Rebranded v4.1 as Multi-Agent Novel Writer.
+- Added a compatibility guide and cross-harness invocation matrices.
+- Rewrote the README, user guide, architecture guide, and documentation index.
+
 ## 4.0.0 - 2026-08-21
 
 ### Claude Code modernization

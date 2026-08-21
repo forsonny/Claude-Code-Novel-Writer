@@ -1,0 +1,53 @@
+{
+  "description": "Novel workspace lifecycle maintenance for Codex.",
+  "hooks": {
+    "SessionStart": [
+      {
+        "matcher": "startup|resume|clear|compact",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "root=\"$(git rev-parse --show-toplevel)\" && cd \"$root\" && ./automation/session-init.sh",
+            "statusMessage": "Loading novel workspace state",
+            "additionalContextLimit": 5000
+          }
+        ]
+      }
+    ],
+    "SubagentStop": [
+      {
+        "matcher": "^chapter-writer$",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "root=\"$(git rev-parse --show-toplevel)\" && cd \"$root\" && ./automation/codex-chapter-completed.sh",
+            "statusMessage": "Updating chapter state"
+          }
+        ]
+      }
+    ],
+    "PreCompact": [
+      {
+        "matcher": "auto",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "root=\"$(git rev-parse --show-toplevel)\" && cd \"$root\" && ./automation/pre-compact-backup.sh",
+            "statusMessage": "Backing up novel state"
+          }
+        ]
+      }
+    ],
+    "SessionEnd": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "root=\"$(git rev-parse --show-toplevel)\" && cd \"$root\" && ./automation/session-summary.sh",
+            "timeout": 3
+          }
+        ]
+      }
+    ]
+  }
+}

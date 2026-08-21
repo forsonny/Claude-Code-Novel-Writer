@@ -15,7 +15,7 @@ print(sum(len(p.read_text(encoding="utf-8", errors="replace").split()) for p in 
 PY
 )"
 
-printf '%s\n' "$current_words" > "/tmp/claude-novel-${session_id}-start-words"
+printf '%s\n' "$current_words" > "/tmp/novel-writer-${session_id}-start-words"
 
 python3 <<'PY'
 import json
@@ -40,5 +40,5 @@ if continuity.exists():
 if planning.exists():
     print(f"- reminder: {planning.read_text(encoding='utf-8').strip()}")
 
-print("Manuscript files are ground truth. Use project skills for planning, drafting, revision, and continuity work.")
+print("Manuscript files are ground truth. Use the shared project skills for planning, drafting, revision, and continuity work.")
 PY

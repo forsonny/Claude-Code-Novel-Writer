@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Claude Code sends SubagentStop JSON on stdin. The matcher in settings already
-# narrows this hook to chapter-writer, but consume the input so future fields can
-# be used without changing the hook contract.
+# Claude Code and Codex send SubagentStop JSON on stdin. Consume the payload so
+# the script keeps the lifecycle contract even though current maintenance only
+# needs the completed chapter on disk.
 hook_input="$(cat || true)"
 
 latest_chapter="$(ls -t manuscript/chapters/chapter-*.md 2>/dev/null | head -n 1 || true)"
@@ -37,4 +37,3 @@ if [[ "$word_count" -ge 3000 ]]; then
       "$chapter_num" > planning/planning-flag.txt
   fi
 fi
-

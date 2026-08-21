@@ -1,36 +1,38 @@
-# Claude Code Novel Writer v4
+# Multi-Agent Novel Writer v4.1
 
-A project-local, multi-agent workspace for planning, drafting, revising, and tracking long-form fiction with Claude Code.
+A file-backed novel planning, drafting, revision, and continuity workspace compatible with Claude Code, OpenAI Codex, and Pi.
 
-Version 4 replaces the older "always-on autonomous" design with current Claude Code primitives: custom subagents, project skills, project output styles, lifecycle hooks, and file-based state. The system still supports long-running novel workflows, but it treats automation and quality metrics as aids rather than guarantees.
+The repository uses one shared creative core:
 
-## What changed in v4
+- `AGENTS.md` for harness-neutral project guidance
+- `.agents/roles/` for canonical specialist roles
+- `.agents/skills/` for canonical writing workflows
+- manuscript files as the source of truth
+- deterministic scripts for synchronization and diagnostics
 
-- Uses the current `Agent` tool for subagent delegation instead of legacy `Task` terminology.
-- Moves the output style into `.claude/output-styles/`, where Claude Code loads project styles directly.
-- Adds project skills for the major writing workflows.
-- Uses `SubagentStop` for chapter-completion automation instead of trying to match an agent name in `PostToolUse`.
-- Removes the context-injection text-file feedback loop.
-- Keeps `CLAUDE.md` concise and moves procedural workflows into skills.
-- Replaces hard-coded quality claims with lightweight, inspectable writing signals.
-- Stops recommending `--dangerously-skip-permissions`.
-- Keeps manuscript files as the source of truth and synchronizes tracking from disk.
+Claude Code, Codex, and Pi each receive a thin native adapter instead of three independent copies of the novel system.
+
+## Compatibility
+
+| Capability | Claude Code | OpenAI Codex | Pi |
+| --- | --- | --- | --- |
+| Project instructions | `CLAUDE.md` imports `AGENTS.md` | `AGENTS.md` | `AGENTS.md` |
+| Shared skills | `.claude/skills/` adapters | `.agents/skills/` | `.agents/skills/` |
+| Named specialists | `.claude/agents/*.md` | `.codex/agents/*.toml` | Canonical role fallback |
+| Short workflow commands | `/plan-novel` | `$plan-novel` or `/skills` | `/plan-novel` or `/skill:plan-novel` |
+| Lifecycle maintenance | `.claude/settings.json` | `.codex/hooks.json` | Skills run maintenance explicitly |
+| Writing style adapter | Claude output style | `AGENTS.md` and roles | `AGENTS.md` and roles |
+
+Pi does not need a third-party subagent extension. When named subagents are unavailable, the workflow reads the canonical role and performs it in the current session.
 
 ## Requirements
 
-- Claude Code
 - Python 3
-- Bash-compatible shell for the included automation scripts
-
-Check your Claude Code version with:
-
-```bash
-claude --version
-```
-
-Current Claude Code documentation:
-
-https://code.claude.com/docs
+- Bash-compatible shell for included automation
+- At least one supported agent harness:
+  - Claude Code
+  - OpenAI Codex
+  - Pi
 
 ## Quick start
 
@@ -38,61 +40,91 @@ https://code.claude.com/docs
 git clone https://github.com/forsonny/Claude-Code-Novel-Writer.git
 cd Claude-Code-Novel-Writer
 ./launch-novel.sh
+```
+
+Then start one harness.
+
+### Claude Code
+
+```bash
 claude
 ```
 
-The project selects the **Autonomous Novelist** output style through `.claude/settings.json`. You can change the active style at any time with `/config`.
-
-Recommended first command inside Claude Code:
+Inside Claude Code:
 
 ```text
 /plan-novel
-```
-
-Then draft chapters with:
-
-```text
 /write-chapter
-```
-
-Useful workflows:
-
-```text
 /continuity-pass
 /revise-chapter
 /finalize-manuscript
 ```
 
-You can pass arguments to skills. For example:
+### OpenAI Codex
+
+```bash
+codex
+```
+
+Mention a project skill in the prompt:
 
 ```text
-/write-chapter 7
-/revise-chapter 7
+$plan-novel
+$write-chapter 7
+$continuity-pass 4-9
+$revise-chapter 7 tighten the midpoint confrontation
+$finalize-manuscript
 ```
+
+You can also use `/skills` to inspect available skills and `/agent` to inspect subagent threads.
+
+Codex project hooks are reviewable project resources. Open `/hooks` and trust the repository hooks before relying on automatic session and chapter maintenance.
+
+### Pi
+
+```bash
+pi
+```
+
+The project includes short prompt templates:
+
+```text
+/plan-novel
+/write-chapter 7
+/continuity-pass 4-9
+/revise-chapter 7 tighten the midpoint confrontation
+/finalize-manuscript
+```
+
+Pi also exposes the shared skills directly:
+
+```text
+/skill:plan-novel
+/skill:write-chapter 7
+```
+
+Project skills and prompt templates load after the project is trusted.
 
 ## Architecture
 
 ```text
 .
-├── CLAUDE.md
+├── AGENTS.md                         # Canonical project guidance
+├── CLAUDE.md                         # Claude imports AGENTS.md
+├── .agents/
+│   ├── roles/                        # Canonical specialist roles
+│   └── skills/                       # Canonical Agent Skills workflows
 ├── .claude/
-│   ├── agents/
-│   │   ├── chapter-writer.md
-│   │   ├── character-developer.md
-│   │   ├── continuity-editor.md
-│   │   ├── error-recovery.md
-│   │   ├── plot-architect.md
-│   │   ├── smart-planner.md
-│   │   └── worldbuilder.md
+│   ├── agents/                       # Claude custom-agent adapters
+│   ├── skills/                       # Claude slash-command adapters
 │   ├── output-styles/
-│   │   └── autonomous-novelist.md
-│   ├── skills/
-│   │   ├── continuity-pass/SKILL.md
-│   │   ├── finalize-manuscript/SKILL.md
-│   │   ├── plan-novel/SKILL.md
-│   │   ├── revise-chapter/SKILL.md
-│   │   └── write-chapter/SKILL.md
-│   └── settings.json
+│   └── settings.json                 # Claude lifecycle hooks
+├── .codex/
+│   ├── agents/                       # Codex project custom agents
+│   ├── config.toml
+│   └── hooks.json                    # Codex lifecycle hooks
+├── .pi/
+│   └── prompts/                      # Pi short workflow commands
 ├── manuscript/chapters/
 ├── planning/
 ├── characters/
@@ -100,27 +132,41 @@ You can pass arguments to skills. For example:
 └── automation/
 ```
 
-### Responsibilities
+## Shared roles
 
-**CLAUDE.md** contains stable project rules and the delegation map.
+Seven canonical roles live under `.agents/roles/`:
 
-**Skills** define repeatable user workflows. They are available as slash commands because they live under `.claude/skills/`.
+- `chapter-writer`
+- `plot-architect`
+- `character-developer`
+- `worldbuilder`
+- `continuity-editor`
+- `smart-planner`
+- `error-recovery`
 
-**Agents** specialize in planning, prose, continuity, characters, worldbuilding, and workflow recovery.
+Claude Code and Codex expose these as native named specialists. Pi follows the same role files directly unless the user has added a compatible delegation extension.
 
-**Hooks** run deterministic maintenance at Claude Code lifecycle boundaries. Chapter-completion maintenance is triggered when the `chapter-writer` subagent stops.
+## Shared skills
 
-**Automation scripts** synchronize file-based state, record lightweight quality signals, and provide diagnostics.
+Five canonical skills live under `.agents/skills/`:
+
+- `plan-novel`
+- `write-chapter`
+- `continuity-pass`
+- `revise-chapter`
+- `finalize-manuscript`
+
+Codex and Pi discover this shared location natively. Claude slash commands are thin adapters that load the same workflow files.
 
 ## State and source of truth
 
-The manuscript files under `manuscript/chapters/` are authoritative. Tracking files are derived state and can be regenerated:
+Manuscript files under `manuscript/chapters/` are authoritative. Tracking is derived and can be regenerated:
 
 ```bash
 ./sync-state.sh
 ```
 
-To inspect the project:
+Diagnostics:
 
 ```bash
 ./verify-system.sh
@@ -128,7 +174,7 @@ automation/system-health-check.sh
 python3 automation/dashboard.py
 ```
 
-The dashboard can monitor continuously:
+Continuous dashboard:
 
 ```bash
 python3 automation/dashboard.py --monitor
@@ -136,24 +182,51 @@ python3 automation/dashboard.py --monitor
 
 ## Quality philosophy
 
-The old system treated numeric heuristics as proof of publication quality. v4 does not.
+`automation/quality-check.sh` records mechanical signals such as word count, paragraph length, and approximate dialogue share. These can reveal anomalies, but they do not determine literary quality.
 
-`automation/quality-check.sh` records mechanical signals such as word count, paragraph length, and dialogue share. Those signals can reveal anomalies, but they do not determine literary quality. Revision decisions should use the chapter's purpose, voice, pacing, continuity, and reader effect.
+Revision decisions should use chapter purpose, voice, pacing, continuity, motivation, and reader effect.
 
-## Safety and permissions
+## Permissions and trust
 
-v4 uses Claude Code's normal permission flow. The repository does not require bypassing permissions.
+Use each harness's normal permission and project-trust flow.
 
-Review project hooks and scripts before running any repository you did not create yourself. This repo's hooks are defined in `.claude/settings.json`.
+Claude hooks are defined in `.claude/settings.json`. Codex hooks are defined in `.codex/hooks.json` and require review through `/hooks`. Pi project resources load only after the project is trusted.
+
+Review hooks, skills, prompts, and scripts before running a repository you did not create.
 
 ## Documentation
 
-- `Documentation/User-Guide.md` for daily use
-- `Documentation/System-Architecture.md` for implementation details
-- `CHANGELOG.md` for the v4 migration summary
+- `Documentation/User-Guide.md`
+- `Documentation/System-Architecture.md`
+- `Documentation/Compatibility.md`
+- `CHANGELOG.md`
 
-## Compatibility note
+## Official references
 
-`setup-enhancements.sh` remains as a compatibility wrapper and now delegates to `launch-novel.sh`.
+Claude Code memory and AGENTS.md interoperability:
 
-The old root `output-styles/` copy is no longer used. Project output styles belong under `.claude/output-styles/`.
+https://code.claude.com/docs/en/memory
+
+OpenAI Codex AGENTS.md:
+
+https://learn.chatgpt.com/docs/agent-configuration/agents-md
+
+OpenAI Codex skills:
+
+https://learn.chatgpt.com/docs/build-skills
+
+OpenAI Codex subagents:
+
+https://learn.chatgpt.com/docs/agent-configuration/subagents
+
+OpenAI Codex hooks:
+
+https://learn.chatgpt.com/docs/hooks
+
+Pi skills:
+
+https://pi.dev/docs/latest/skills
+
+Pi prompt templates:
+
+https://pi.dev/docs/latest/prompt-templates
