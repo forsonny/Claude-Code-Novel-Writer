@@ -1,48 +1,24 @@
 {
+  "outputStyle": "Autonomous Novelist",
   "hooks": {
-    "PostToolUse": [
+    "SessionStart": [
       {
-        "matcher": "task",
+        "matcher": "startup|resume|clear|compact|fork",
         "hooks": [
           {
             "type": "command",
-            "command": "echo \"Task completed at $(date +%Y-%m-%d_%H:%M:%S)\" >> automation/task.log"
-          }
-        ]
-      },
-      {
-        "matcher": "Write",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "bash -c 'if [[ \"$1\" =~ manuscript/chapters/chapter-.*\\.md ]]; then automation/quality-check.sh; fi' -- \"$(cat /tmp/last_written_file 2>/dev/null)\"",
-            "comment": "Run quality check only on chapter files"
-          },
-          {
-            "type": "command",
-            "command": "automation/auto-sync-progress.sh",
-            "comment": "Automatically sync progress after writes"
-          }
-        ]
-      },
-      {
-        "matcher": "chapter-writer",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "automation/chapter-completed.sh",
-            "comment": "Handle chapter completion tasks"
+            "command": "${CLAUDE_PROJECT_DIR}/automation/session-init.sh"
           }
         ]
       }
     ],
-    "SessionStart": [
+    "SubagentStop": [
       {
+        "matcher": "^chapter-writer$",
         "hooks": [
           {
             "type": "command",
-            "command": "automation/session-init.sh",
-            "comment": "Comprehensive session initialization"
+            "command": "${CLAUDE_PROJECT_DIR}/automation/chapter-completed.sh"
           }
         ]
       }
@@ -53,19 +29,17 @@
         "hooks": [
           {
             "type": "command",
-            "command": "automation/pre-compact-backup.sh",
-            "comment": "Backup before auto-compacting"
+            "command": "${CLAUDE_PROJECT_DIR}/automation/pre-compact-backup.sh"
           }
         ]
       }
     ],
-    "Stop": [
+    "SessionEnd": [
       {
         "hooks": [
           {
             "type": "command",
-            "command": "automation/session-summary.sh",
-            "comment": "Generate session summary"
+            "command": "${CLAUDE_PROJECT_DIR}/automation/session-summary.sh"
           }
         ]
       }

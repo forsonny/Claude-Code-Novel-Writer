@@ -1,79 +1,44 @@
-#!/bin/bash
-# session-init.sh - Initialize session with all necessary checks
+#!/usr/bin/env bash
+set -euo pipefail
 
-echo "🚀 Initializing Writing Session..."
+hook_input="$(cat || true)"
+session_id="$(python3 -c 'import json,sys; d=json.loads(sys.stdin.read() or "{}"); print(d.get("session_id","unknown"))' <<<"$hook_input" 2>/dev/null || echo unknown)"
 
-# Clean up old context injection (prevent infinite growth)
-if [ -f .claude/context-injection.txt ]; then
-    # Keep only last 50 lines to prevent infinite growth
-    if [ $(wc -l < .claude/context-injection.txt) -gt 50 ]; then
-        tail -n 50 .claude/context-injection.txt > .claude/context-injection.tmp
-        mv .claude/context-injection.tmp .claude/context-injection.txt
-        echo "   ✅ Cleaned up context injection file"
-    fi
-fi
+mkdir -p manuscript/chapters planning worldbuilding characters automation
 
-# Run system health check if it exists
-if [ -x automation/system-health-check.sh ]; then
-    echo "   🔍 Running health check..."
-    automation/system-health-check.sh > /tmp/health.log 2>&1
-    health_score=$(grep "Health Score:" /tmp/health.log | grep -o '[0-9]*' | head -1)
-    
-    if [ -n "$health_score" ]; then
-        if [ "$health_score" -lt 70 ]; then
-            echo "⚠️  HEALTH_WARNING: System health is $health_score/100 - needs attention" >> .claude/context-injection.txt
-        else
-            echo "   ✅ System health: $health_score/100"
-        fi
-    fi
-fi
+./sync-state.sh --quiet
+automation/system-health-check.sh --quiet || true
 
-# Check for duplicates if checker exists
-if [ -x automation/duplicate-checker.sh ]; then
-    echo "   🔍 Checking for duplicates..."
-    automation/duplicate-checker.sh > /tmp/duplicates.log 2>&1
-    if grep -q "DUPLICATE FOUND" /tmp/duplicates.log; then
-        echo "🚨 DUPLICATES_EXIST: Multiple files for same chapter detected" >> .claude/context-injection.txt
-        echo "   ⚠️  Duplicates detected - see /tmp/duplicates.log"
-    else
-        echo "   ✅ No duplicates found"
-    fi
-fi
+current_words="$(python3 - <<'PY'
+from pathlib import Path
+print(sum(len(p.read_text(encoding="utf-8", errors="replace").split()) for p in Path("manuscript/chapters").glob("chapter-*.md")))
+PY
+)"
 
-# Quick state sync check
-actual_chapters=$(ls manuscript/chapters/chapter-*.md 2>/dev/null | wc -l)
-echo "   📚 Found $actual_chapters chapter files"
+printf '%s\n' "$current_words" > "/tmp/claude-novel-${session_id}-start-words"
 
-if [ -f planning/plot-progress.json ]; then
-    tracked_chapter=$(grep -o '"current_chapter":[[:space:]]*[0-9]*' planning/plot-progress.json | grep -o '[0-9]*$' || echo "1")
-    
-    if [ "$actual_chapters" -gt 0 ]; then
-        if [ $((tracked_chapter - actual_chapters)) -gt 1 ] || [ $((actual_chapters - tracked_chapter)) -gt 1 ]; then
-            echo "⚠️  SYNC_NEEDED: Tracking shows chapter $tracked_chapter but $actual_chapters files exist" >> .claude/context-injection.txt
-            echo "   ⚠️  Progress tracking may be out of sync"
-        else
-            echo "   ✅ Progress tracking aligned"
-        fi
-    fi
-fi
+python3 <<'PY'
+import json
+from pathlib import Path
 
-# Check for pending review flags
-if [ -f planning/continuity-flag.txt ]; then
-    echo "   📋 Continuity check pending"
-    cat planning/continuity-flag.txt >> .claude/context-injection.txt
-fi
+progress_path = Path("planning/plot-progress.json")
+try:
+    progress = json.loads(progress_path.read_text(encoding="utf-8"))
+except Exception:
+    progress = {}
 
-if [ -f planning/planning-flag.txt ]; then
-    echo "   📋 Planning review pending"
-    cat planning/planning-flag.txt >> .claude/context-injection.txt
-fi
+print("Novel workspace state:")
+print(f"- title: {progress.get('novel_title', 'Untitled')}")
+print(f"- total manuscript words: {progress.get('total_words', 0)}")
+print(f"- current chapter: {progress.get('current_chapter', 1)}")
+print(f"- chapter status: {progress.get('chapter_status', 'not_started')}")
 
-# Log session start
-mkdir -p automation
-echo "$(date): Session started - $actual_chapters chapters exist" >> automation/sessions.log
+continuity = Path("planning/continuity-flag.txt")
+planning = Path("planning/planning-flag.txt")
+if continuity.exists():
+    print(f"- reminder: {continuity.read_text(encoding='utf-8').strip()}")
+if planning.exists():
+    print(f"- reminder: {planning.read_text(encoding='utf-8').strip()}")
 
-# Store starting word count for session tracking
-current_words=$(find manuscript/chapters -name "*.md" -exec wc -w {} + 2>/dev/null | tail -n 1 | awk '{print $1}' || echo "0")
-echo "$current_words" > /tmp/session_start_words
-
-echo "✅ Session initialized successfully!"
+print("Manuscript files are ground truth. Use project skills for planning, drafting, revision, and continuity work.")
+PY
