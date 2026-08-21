@@ -6,94 +6,118 @@
 ./launch-novel.sh
 ```
 
-The launcher checks Python, prepares generated directories, synchronizes state, and runs repository verification.
+The launcher checks Python, prepares generated directories, synchronizes file-based state, and validates the Claude Code, Codex, and Pi adapters.
 
-Start Claude Code normally:
+## 2. Choose a harness
+
+### Claude Code
 
 ```bash
 claude
 ```
 
-v4 does not require `--dangerously-skip-permissions`.
+Use project slash commands such as `/plan-novel` and `/write-chapter`.
 
-## 2. Output style
+Claude loads `CLAUDE.md`, which imports the canonical `AGENTS.md`. Native specialists live under `.claude/agents/`.
 
-The repository includes:
+### OpenAI Codex
 
-```text
-.claude/output-styles/autonomous-novelist.md
+```bash
+codex
 ```
 
-`.claude/settings.json` selects **Autonomous Novelist** for this project. Change it through `/config` if you want another output style.
-
-## 3. Start a novel
-
-Inside Claude Code:
+Mention a shared skill with `$`, for example:
 
 ```text
-/plan-novel
+$plan-novel political fantasy about a disgraced cartographer
+$write-chapter 7
 ```
 
-You can append a premise or constraints:
+Use `/skills` to inspect skills and `/agent` to inspect active or completed subagent threads.
 
-```text
-/plan-novel political fantasy about a disgraced cartographer; 80k target; close third person
+Codex reads `AGENTS.md`, discovers `.agents/skills/`, and loads named specialists from `.codex/agents/`.
+
+Review project hooks with `/hooks`. Automatic session and chapter maintenance runs only after those hooks are trusted.
+
+### Pi
+
+```bash
+pi
 ```
 
-The skill inspects existing project state before planning and delegates structural work to the `plot-architect`.
-
-## 4. Draft chapters
-
-Draft the next chapter:
+Use the included prompt templates:
 
 ```text
-/write-chapter
-```
-
-Draft a specific chapter:
-
-```text
+/plan-novel political fantasy about a disgraced cartographer
 /write-chapter 7
 ```
 
-The skill reads the outline and relevant canon, then delegates complete drafting to `chapter-writer`.
+Or invoke the shared skill directly:
 
-When `chapter-writer` finishes, a `SubagentStop` hook:
+```text
+/skill:plan-novel
+/skill:write-chapter 7
+```
 
-1. synchronizes tracking from manuscript files
-2. records lightweight writing signals
-3. logs completed chapters
-4. creates periodic continuity or planning reminders
+Pi reads `AGENTS.md` and discovers `.agents/skills/` after the project is trusted. No third-party subagent extension is required. Pi can read a canonical role and perform it directly.
+
+## 3. Plan a novel
+
+Harness commands:
+
+```text
+Claude Code: /plan-novel [premise or constraints]
+Codex:       $plan-novel [premise or constraints]
+Pi:          /plan-novel [premise or constraints]
+```
+
+The shared skill inspects existing project state before planning, preserves drafted prose as canon, and updates `planning/novel-outline.json`.
+
+## 4. Draft chapters
+
+```text
+Claude Code: /write-chapter 7
+Codex:       $write-chapter 7
+Pi:          /write-chapter 7
+```
+
+The workflow reads the outline, previous chapter, character state, world state, and continuity notes before drafting.
+
+It refuses to overwrite substantial prose unless the request clearly calls for revision.
+
+After writing, it records mechanical signals and synchronizes tracking. Claude Code and Codex may also perform maintenance through lifecycle hooks.
 
 ## 5. Review continuity
 
 ```text
-/continuity-pass
+Claude Code: /continuity-pass 4-9
+Codex:       $continuity-pass 4-9
+Pi:          /continuity-pass 4-9
 ```
 
-Or specify a range:
-
-```text
-/continuity-pass 4-9
-```
-
-The continuity editor checks timeline, character knowledge, physical state, world rules, names, setups, and payoffs. It should report findings before editing unless you ask it to fix them.
+The continuity role checks timeline, knowledge, physical state, names, world rules, setups, and payoffs. It reports findings before editing unless fixes were requested.
 
 ## 6. Revise a chapter
 
 ```text
-/revise-chapter 7 tighten the midpoint confrontation and preserve Mara's dry voice
+Claude Code: /revise-chapter 7 tighten the midpoint confrontation
+Codex:       $revise-chapter 7 tighten the midpoint confrontation
+Pi:          /revise-chapter 7 tighten the midpoint confrontation
 ```
 
-The revision workflow distinguishes structural, prose, character, and continuity problems before editing.
+The shared workflow distinguishes structural, prose, character, pacing, and continuity problems before editing.
 
 ## 7. Finalize a manuscript
 
 ```text
-/finalize-manuscript
+Claude Code: /finalize-manuscript
+Codex:       $finalize-manuscript
+Pi:          /finalize-manuscript
 ```
 
-This performs a manuscript-level review and produces a prioritized revision plan. Automated checks do not certify publication readiness.
+This performs manuscript-level structural, continuity, arc, and completion review before broad polish.
+
+Automated checks do not certify publication readiness.
 
 ## 8. State synchronization
 
@@ -105,21 +129,48 @@ If tracking looks wrong:
 ./sync-state.sh
 ```
 
-The command regenerates `planning/chapter-status.json` and updates `planning/plot-progress.json` from the actual chapter files.
+The command regenerates `planning/chapter-status.json` and updates `planning/plot-progress.json` from actual chapter files.
 
 ## 9. Diagnostics
 
 ```bash
 ./verify-system.sh
 automation/system-health-check.sh
-automation/quality-check.sh
+automation/quality-check.sh manuscript/chapters/chapter-7.md
 python3 automation/dashboard.py
 ```
 
-`quality-check.sh` records mechanical signals. It does not score literary quality.
+The verification command checks shared roles and skills plus all three harness adapters.
 
-## 10. Resuming work
+## 10. Lifecycle behavior
 
-Starting Claude Code triggers the `SessionStart` hook. It synchronizes state, runs a quick health check, and injects a short summary of the current manuscript position into the session.
+### Claude Code
 
-This replaces the old `.claude/context-injection.txt` accumulation loop.
+- `SessionStart` loads current workspace state.
+- `SubagentStop` for `chapter-writer` synchronizes and checks the latest chapter.
+- `PreCompact` creates a backup.
+- `SessionEnd` logs manuscript word change.
+
+### Codex
+
+The same lifecycle is configured in `.codex/hooks.json`. The Codex chapter hook uses a JSON-safe wrapper because successful `SubagentStop` hooks must emit JSON.
+
+### Pi
+
+Pi compatibility relies on shared skills and prompt templates rather than a bundled extension. Each writing workflow runs synchronization and writing-signal maintenance explicitly.
+
+## 11. Adding a workflow
+
+1. Add the canonical skill at `.agents/skills/<name>/SKILL.md`.
+2. Add a Claude adapter at `.claude/skills/<name>/SKILL.md`.
+3. Add a Pi prompt template at `.pi/prompts/<name>.md` when a short `/name` command is useful.
+4. Codex and Pi discover the canonical `.agents/skills/` skill automatically.
+5. Update `verify-system.sh` and documentation.
+
+## 12. Adding a specialist role
+
+1. Add the canonical role at `.agents/roles/<name>.md`.
+2. Add a Claude custom-agent adapter at `.claude/agents/<name>.md`.
+3. Add a Codex custom agent at `.codex/agents/<name>.toml`.
+4. Describe the direct-execution fallback in the relevant shared skill so Pi remains compatible.
+5. Update validation and documentation.

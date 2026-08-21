@@ -2,139 +2,172 @@
 
 ## Design goal
 
-v4 is a file-backed orchestration layer for Claude Code. It separates creative specialization from deterministic maintenance:
+v4.1 is a file-backed novel orchestration layer shared by Claude Code, OpenAI Codex, and Pi.
 
-- agents handle bounded reasoning and writing tasks
-- skills define repeatable workflows
-- hooks run maintenance at lifecycle boundaries
-- scripts derive state from files
-- manuscript prose remains the source of truth
+It separates:
 
-## Claude Code primitives
+- canonical creative instructions
+- harness-native adapters
+- deterministic maintenance
+- authored story state
+- derived tracking state
 
-### Custom subagents
+The system avoids maintaining three divergent prompt stacks.
 
-Agents live in:
+## Shared core
+
+### AGENTS.md
+
+`AGENTS.md` contains stable harness-neutral rules, ground-truth precedence, role resolution, workflow expectations, and validation commands.
+
+Codex and Pi read it directly.
+
+Claude Code reads `CLAUDE.md`, whose first line imports `AGENTS.md`. Claude-specific instructions follow the import.
+
+### Canonical roles
+
+Role definitions live under:
 
 ```text
-.claude/agents/
+.agents/roles/
 ```
 
-The main conversation delegates with the current `Agent` tool. v4 does not use `Task` in active instructions.
+They contain creative and editorial behavior without harness-specific frontmatter or tool names.
 
-The seven project agents are:
+The seven roles are:
 
-| Agent | Responsibility |
+| Role | Responsibility |
 | --- | --- |
 | `chapter-writer` | Complete chapter drafting and substantive prose revision |
-| `plot-architect` | Structure, turning points, chapter beats, setup and payoff |
-| `character-developer` | Motivation, arcs, relationships, voice, knowledge |
-| `worldbuilder` | Setting rules, institutions, history, geography, systems |
+| `plot-architect` | Structure, turning points, chapter beats, setup, and payoff |
+| `character-developer` | Motivation, arcs, relationships, voice, and knowledge |
+| `worldbuilder` | Setting rules, institutions, history, geography, and systems |
 | `continuity-editor` | Cross-file consistency and contradiction auditing |
 | `smart-planner` | Pacing and next-action analysis |
-| `error-recovery` | Repository state, JSON, script, and configuration recovery |
+| `error-recovery` | Tracking, JSON, scripts, and harness configuration recovery |
 
-Agent frontmatter uses current tool names such as `Read`, `Glob`, `Grep`, `Write`, `Edit`, and `Bash`.
+### Canonical skills
 
-Official reference:
-
-https://code.claude.com/docs/en/sub-agents
-
-### Project skills
-
-Skills live in:
+Skills live under:
 
 ```text
-.claude/skills/<skill-name>/SKILL.md
+.agents/skills/<skill-name>/SKILL.md
 ```
 
-They provide the user-facing workflow layer:
+These follow the Agent Skills directory format and provide the shared user workflows:
 
-- `/plan-novel`
-- `/write-chapter`
-- `/continuity-pass`
-- `/revise-chapter`
-- `/finalize-manuscript`
+- `plan-novel`
+- `write-chapter`
+- `continuity-pass`
+- `revise-chapter`
+- `finalize-manuscript`
 
-Official reference:
+Each skill supports two execution paths:
 
-https://code.claude.com/docs/en/skills
+1. delegate to the matching named specialist when the harness exposes one
+2. read the canonical role file and perform the role directly
+
+The second path keeps Pi fully functional without requiring a third-party delegation extension.
+
+## Claude Code adapter
+
+### Instructions
+
+`CLAUDE.md` imports `AGENTS.md`.
+
+### Custom agents
+
+`.claude/agents/*.md` files preserve Claude-specific frontmatter, tool allowlists, model inheritance, and turn limits. Their bodies point to canonical role files.
+
+### Skills
+
+`.claude/skills/*/SKILL.md` files preserve Claude slash-command discovery and forward invocation arguments to canonical skills.
 
 ### Output style
 
-The project output style lives at:
-
-```text
-.claude/output-styles/autonomous-novelist.md
-```
-
-It changes the main conversation from software-engineering defaults toward fiction work. Subagents use their own prompts.
-
-Official reference:
-
-https://code.claude.com/docs/en/output-styles
+`.claude/output-styles/autonomous-novelist.md` adjusts the main Claude conversation toward fiction work.
 
 ### Hooks
 
-Hooks are configured in `.claude/settings.json`.
+`.claude/settings.json` configures:
 
-#### SessionStart
+- `SessionStart`
+- `SubagentStop` for `chapter-writer`
+- `PreCompact`
+- `SessionEnd`
 
-Runs `automation/session-init.sh`.
+## OpenAI Codex adapter
 
-The script:
+### Instructions
 
-- synchronizes tracking
-- runs a quick health check
-- captures starting word count for the session
-- prints a concise state summary that Claude Code adds to session context
+Codex reads root `AGENTS.md` before work.
 
-#### SubagentStop: chapter-writer
+### Skills
 
-Runs `automation/chapter-completed.sh`.
+Codex discovers the canonical `.agents/skills/` tree directly. Users can mention a skill with `$skill-name` or inspect skills through `/skills`.
 
-`SubagentStop` matches agent type, which is the appropriate lifecycle event for chapter-writer completion.
+### Custom agents
 
-The script:
+Project custom agents live under:
 
-- synchronizes state
-- runs writing-signal analysis on the latest chapter
-- logs a chapter that has reached full-draft length
-- creates periodic continuity and planning reminders
+```text
+.codex/agents/*.toml
+```
 
-#### PreCompact
+Each TOML file declares `name`, `description`, and `developer_instructions`. The developer instructions load `AGENTS.md` and the corresponding canonical role file.
 
-Runs the existing `automation/pre-compact-backup.sh` for automatic compaction.
+`.codex/config.toml` enables agents and bounds concurrent subagent threads without pinning a model.
 
-#### SessionEnd
+### Hooks
 
-Runs `automation/session-summary.sh` and logs the session's net manuscript word change.
+`.codex/hooks.json` configures project lifecycle hooks.
 
-Official reference:
+Codex requires project hooks to be reviewed and trusted. The repository uses:
 
-https://code.claude.com/docs/en/hooks
+- `SessionStart` for synchronization and current-state context
+- `SubagentStop` for `chapter-writer`
+- `PreCompact` for backup
+- `SessionEnd` for word-delta logging
 
-## Why context-injection.txt was removed
+Codex expects valid JSON on successful `SubagentStop` stdout. `automation/codex-chapter-completed.sh` runs the shared chapter maintenance script and emits `{}` on success.
 
-v3 appended reminder strings to `.claude/context-injection.txt` after tool calls and made the orchestrator reread that file repeatedly.
+## Pi adapter
 
-That design had several drawbacks:
+### Instructions and skills
 
-- unbounded repeated context
-- fragile dependency on stale tool names
-- duplicated instructions already present in project configuration
-- unnecessary file writes
-- no clear lifecycle ownership
+Pi reads `AGENTS.md` and discovers `.agents/skills/` after project trust.
 
-v4 uses static instructions in `CLAUDE.md`, procedural instructions in skills, and lifecycle context from hooks.
+### Prompt templates
 
-## CLAUDE.md scope
+Project templates live under:
 
-`CLAUDE.md` contains only stable rules needed in most sessions. Multi-step procedures live in skills so startup context stays smaller and the workflows can evolve independently.
+```text
+.pi/prompts/*.md
+```
 
-Official reference:
+They provide short `/plan-novel`-style commands and forward `$ARGUMENTS` to the canonical skill.
 
-https://code.claude.com/docs/en/memory
+Pi also exposes canonical skills through `/skill:<name>`.
+
+### Role execution
+
+The repository does not bundle a Pi extension or third-party subagent package. Shared skills explicitly fall back to reading `.agents/roles/<name>.md` and executing the role in the current Pi session.
+
+This keeps compatibility native and minimizes version-sensitive extension code.
+
+## Deterministic maintenance
+
+Scripts under `automation/` handle:
+
+- state synchronization
+- chapter writing signals
+- chapter completion logging
+- session word deltas
+- backups
+- health checks
+- dashboard display
+
+Creative judgment remains in the conversation, canonical roles, and skills.
 
 ## State model
 
@@ -149,11 +182,11 @@ https://code.claude.com/docs/en/memory
 - `planning/chapter-status.json`
 - `planning/plot-progress.json`
 
-The synchronizer preserves user planning metadata such as title and target words where possible.
+The synchronizer preserves user planning metadata where possible.
 
-### Creative state
+### Authored creative state
 
-These remain authored or semi-authored sources rather than purely derived data:
+These are authored or semi-authored sources, not purely generated state:
 
 - `planning/novel-outline.json`
 - `characters/`
@@ -161,18 +194,36 @@ These remain authored or semi-authored sources rather than purely derived data:
 
 ## Quality signals
 
-`automation/quality-check.sh` measures:
+`automation/quality-check.sh` measures mechanical signals such as:
 
 - word count
 - paragraph count
 - average and maximum paragraph length
 - approximate dialogue share
-- a few anomaly warnings
+- anomaly warnings
 
-The output explicitly labels these as mechanical signals, not a literary-quality score.
+These signals do not constitute a literary-quality score.
 
-## Permissions
+## Validation
 
-v4 relies on Claude Code's normal permission flow. It does not require bypass mode.
+`verify-system.sh` checks:
 
-Hooks should remain deterministic, quick, and reviewable. Creative decisions belong in the conversation and agents, not in shell scripts.
+- canonical roles and skills
+- Claude agent and skill adapters
+- Codex agent TOML and hook JSON
+- Pi prompt templates
+- shell and Python syntax
+- stale v3 references
+- synchronized state and health
+
+Missing harness CLIs produce warnings rather than failures. The repository can be prepared on a machine that has only one supported harness installed.
+
+## Trust and security
+
+Harness-specific project resources are executable or instruction-bearing content.
+
+- Claude Code uses its workspace trust and permission flow.
+- Codex requires project hook review through `/hooks`.
+- Pi loads project resources after project trust.
+
+The repository does not require permission bypass modes.

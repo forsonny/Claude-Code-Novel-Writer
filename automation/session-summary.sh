@@ -10,7 +10,7 @@ print(sum(len(p.read_text(encoding="utf-8", errors="replace").split()) for p in 
 PY
 )"
 
-start_file="/tmp/claude-novel-${session_id}-start-words"
+start_file="/tmp/novel-writer-${session_id}-start-words"
 if [[ -f "$start_file" ]]; then
   start_words="$(cat "$start_file")"
 else

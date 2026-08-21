@@ -18,30 +18,22 @@ from __future__ import annotations
 
 import json
 import os
-import re
 import sys
 from datetime import datetime, timezone
 from pathlib import Path
 
 quiet = bool(int(sys.argv[1]))
 
-required_files = [
-    "CLAUDE.md",
-    ".claude/settings.json",
-    ".claude/output-styles/autonomous-novelist.md",
-    "sync-state.sh",
-    "automation/quality-check.sh",
+roles = [
+    "chapter-writer",
+    "plot-architect",
+    "worldbuilder",
+    "character-developer",
+    "continuity-editor",
+    "smart-planner",
+    "error-recovery",
 ]
-required_agents = [
-    "chapter-writer.md",
-    "plot-architect.md",
-    "worldbuilder.md",
-    "character-developer.md",
-    "continuity-editor.md",
-    "smart-planner.md",
-    "error-recovery.md",
-]
-required_skills = [
+skills = [
     "plan-novel",
     "write-chapter",
     "continuity-pass",
@@ -49,30 +41,55 @@ required_skills = [
     "finalize-manuscript",
 ]
 
-issues = []
-warnings = []
+required_files = [
+    "AGENTS.md",
+    "CLAUDE.md",
+    ".claude/settings.json",
+    ".claude/output-styles/autonomous-novelist.md",
+    ".codex/config.toml",
+    ".codex/hooks.json",
+    "sync-state.sh",
+    "automation/quality-check.sh",
+    "automation/codex-chapter-completed.sh",
+]
+
+issues: list[str] = []
+warnings: list[str] = []
 
 for rel in required_files:
     if not Path(rel).is_file():
         issues.append(f"missing required file: {rel}")
 
-for name in required_agents:
-    if not Path(".claude/agents", name).is_file():
-        issues.append(f"missing agent: {name}")
+for role in roles:
+    for rel in [
+        Path(".agents/roles", f"{role}.md"),
+        Path(".claude/agents", f"{role}.md"),
+        Path(".codex/agents", f"{role}.toml"),
+    ]:
+        if not rel.is_file():
+            issues.append(f"missing role adapter: {rel}")
 
-for name in required_skills:
-    if not Path(".claude/skills", name, "SKILL.md").is_file():
-        issues.append(f"missing skill: {name}")
+for skill in skills:
+    for rel in [
+        Path(".agents/skills", skill, "SKILL.md"),
+        Path(".claude/skills", skill, "SKILL.md"),
+        Path(".pi/prompts", f"{skill}.md"),
+    ]:
+        if not rel.is_file():
+            issues.append(f"missing skill adapter: {rel}")
 
-json_files = [
+for rel in [
     ".claude/settings.json",
+    ".codex/hooks.json",
     "planning/plot-progress.json",
     "planning/chapter-status.json",
-]
-for rel in json_files:
+]:
     path = Path(rel)
     if not path.exists():
-        warnings.append(f"missing generated JSON: {rel}")
+        if rel.startswith("planning/"):
+            warnings.append(f"missing generated JSON: {rel}")
+        else:
+            issues.append(f"missing JSON: {rel}")
         continue
     try:
         json.loads(path.read_text(encoding="utf-8"))
@@ -85,18 +102,50 @@ if settings_path.exists():
         settings = json.loads(settings_path.read_text(encoding="utf-8"))
         hooks = settings.get("hooks", {})
         if "SubagentStop" not in hooks:
-            issues.append("settings missing SubagentStop chapter hook")
+            issues.append("Claude settings missing SubagentStop chapter hook")
         if settings.get("outputStyle") != "Autonomous Novelist":
-            warnings.append("project outputStyle is not Autonomous Novelist")
+            warnings.append("Claude project outputStyle is not Autonomous Novelist")
     except Exception:
         pass
 
-for rel in ["launch-novel.sh", "sync-state.sh", "verify-system.sh"]:
+codex_hooks_path = Path(".codex/hooks.json")
+if codex_hooks_path.exists():
+    try:
+        hooks = json.loads(codex_hooks_path.read_text(encoding="utf-8")).get("hooks", {})
+        for event in ["SessionStart", "SubagentStop", "SessionEnd"]:
+            if event not in hooks:
+                issues.append(f"Codex hooks missing {event}")
+    except Exception:
+        pass
+
+try:
+    import tomllib
+except ModuleNotFoundError:
+    warnings.append("Python <3.11: TOML validation skipped")
+else:
+    toml_paths = [Path(".codex/config.toml"), *Path(".codex/agents").glob("*.toml")]
+    for path in toml_paths:
+        try:
+            data = tomllib.loads(path.read_text(encoding="utf-8"))
+        except Exception as exc:
+            issues.append(f"invalid TOML in {path}: {exc}")
+            continue
+        if path.parent.name == "agents":
+            for key in ["name", "description", "developer_instructions"]:
+                if not data.get(key):
+                    issues.append(f"{path} missing required key: {key}")
+
+for rel in [
+    "launch-novel.sh",
+    "sync-state.sh",
+    "verify-system.sh",
+    "automation/codex-chapter-completed.sh",
+]:
     if Path(rel).exists() and not os.access(rel, os.X_OK):
         warnings.append(f"script is not executable: {rel}")
 
-score = max(0, 100 - len(issues) * 15 - len(warnings) * 5)
-status = "healthy" if not issues and score >= 90 else "warning" if score >= 70 else "critical"
+score = max(0, 100 - len(issues) * 12 - len(warnings) * 4)
+status = "healthy" if not issues and score >= 90 else "warning" if not issues else "critical"
 report = {
     "timestamp": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
     "health_score": score,
