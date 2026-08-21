@@ -1,32 +1,15 @@
-#!/bin/bash
-# pre-compact-backup.sh - Backup before context compaction
+#!/usr/bin/env bash
+set -euo pipefail
 
-echo "💾 Creating pre-compact backup..."
+backup_dir="backups/compact-$(date -u +%Y%m%dT%H%M%SZ)"
+mkdir -p "$backup_dir" automation
 
-backup_dir="backups/compact-$(date +%Y%m%d_%H%M%S)"
-mkdir -p "$backup_dir"
+for dir in manuscript planning worldbuilding characters; do
+  if [[ -d "$dir" ]]; then
+    cp -R "$dir" "$backup_dir/"
+  fi
+done
 
-# Backup critical files
-if [ -d manuscript/chapters ]; then
-    cp -r manuscript/chapters "$backup_dir/" 2>/dev/null
-    echo "   ✅ Backed up manuscript"
-fi
-
-if [ -d planning ]; then
-    cp -r planning "$backup_dir/" 2>/dev/null
-    echo "   ✅ Backed up planning files"
-fi
-
-if [ -d worldbuilding ]; then
-    cp -r worldbuilding "$backup_dir/" 2>/dev/null
-    echo "   ✅ Backed up worldbuilding"
-fi
-
-if [ -d characters ]; then
-    cp -r characters "$backup_dir/" 2>/dev/null
-    echo "   ✅ Backed up characters"
-fi
-
-echo "✅ Pre-compact backup created: $backup_dir"
-mkdir -p automation
-echo "$(date): Pre-compact backup created in $backup_dir" >> automation/backup.log
+printf '%s pre_compact_backup=%s\n' \
+  "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+  "$backup_dir" >> automation/backup.log

@@ -1,37 +1,40 @@
-#!/bin/bash
-# chapter-completed.sh - Handle chapter completion tasks
+#!/usr/bin/env bash
+set -euo pipefail
 
-# Get the latest chapter
-latest_chapter=$(ls -t manuscript/chapters/chapter-*.md 2>/dev/null | head -1)
+# Claude Code sends SubagentStop JSON on stdin. The matcher in settings already
+# narrows this hook to chapter-writer, but consume the input so future fields can
+# be used without changing the hook contract.
+hook_input="$(cat || true)"
 
-if [ -n "$latest_chapter" ]; then
-    chapter_num=$(echo "$latest_chapter" | grep -o '[0-9]\+' | head -1)
-    word_count=$(wc -w < "$latest_chapter" 2>/dev/null || echo "0")
-    
-    if [ $word_count -ge 3000 ]; then
-        # Chapter is complete
-        mkdir -p automation
-        echo "$(date): Chapter $chapter_num completed with $word_count words" >> automation/completions.log
-        echo "   ✅ Chapter $chapter_num completion logged"
-        
-        # Every 3 chapters, flag for continuity check
-        if [ $((chapter_num % 3)) -eq 0 ]; then
-            mkdir -p planning
-            echo "CONTINUITY_CHECK_DUE: Chapters $((chapter_num - 2))-$chapter_num ready for review" > planning/continuity-flag.txt
-            echo "   📋 Continuity check flagged for chapters $((chapter_num - 2))-$chapter_num"
-        fi
-        
-        # Every 5 chapters, flag for planning review
-        if [ $((chapter_num % 5)) -eq 0 ]; then
-            mkdir -p planning
-            echo "PLANNING_REVIEW_DUE: Completed $chapter_num chapters - time for story planning review" > planning/planning-flag.txt
-            echo "   📋 Planning review flagged after $chapter_num chapters"
-        fi
-        
-        # Auto-backup completed chapters if backup script exists
-        if [ -x automation/auto-backup.sh ]; then
-            echo "   💾 Running auto-backup..."
-            automation/auto-backup.sh > /dev/null 2>&1
-        fi
-    fi
+latest_chapter="$(ls -t manuscript/chapters/chapter-*.md 2>/dev/null | head -n 1 || true)"
+if [[ -z "$latest_chapter" ]]; then
+  exit 0
 fi
+
+./sync-state.sh --quiet
+automation/quality-check.sh "$latest_chapter" >/dev/null 2>&1 || true
+
+chapter_num="$(basename "$latest_chapter" | grep -oE '[0-9]+' | head -n 1)"
+chapter_num=$((10#$chapter_num))
+word_count="$(wc -w < "$latest_chapter" | tr -d ' ')"
+
+mkdir -p planning automation
+
+if [[ "$word_count" -ge 3000 ]]; then
+  printf '%s chapter=%s words=%s file=%s\n' \
+    "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+    "$chapter_num" \
+    "$word_count" \
+    "$latest_chapter" >> automation/completions.log
+
+  if (( chapter_num % 3 == 0 )); then
+    printf 'Review continuity across chapters %d-%d.\n' \
+      "$((chapter_num - 2))" "$chapter_num" > planning/continuity-flag.txt
+  fi
+
+  if (( chapter_num % 5 == 0 )); then
+    printf 'Review pacing and plan after chapter %d.\n' \
+      "$chapter_num" > planning/planning-flag.txt
+  fi
+fi
+

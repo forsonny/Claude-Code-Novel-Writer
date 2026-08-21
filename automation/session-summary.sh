@@ -1,69 +1,31 @@
-#!/bin/bash
-# session-summary.sh - Generate session summary statistics
+#!/usr/bin/env bash
+set -euo pipefail
 
-echo "📊 Generating session summary..."
+hook_input="$(cat || true)"
+session_id="$(python3 -c 'import json,sys; d=json.loads(sys.stdin.read() or "{}"); print(d.get("session_id","unknown"))' <<<"$hook_input" 2>/dev/null || echo unknown)"
 
-# Get session timing
-if [ -f automation/sessions.log ]; then
-    session_start=$(tail -n 1 automation/sessions.log | cut -d: -f1-2)
+current_words="$(python3 - <<'PY'
+from pathlib import Path
+print(sum(len(p.read_text(encoding="utf-8", errors="replace").split()) for p in Path("manuscript/chapters").glob("chapter-*.md")))
+PY
+)"
+
+start_file="/tmp/claude-novel-${session_id}-start-words"
+if [[ -f "$start_file" ]]; then
+  start_words="$(cat "$start_file")"
 else
-    session_start="Unknown"
-fi
-session_end=$(date)
-
-# Calculate words written this session
-if [ -f /tmp/session_start_words ]; then
-    start_words=$(cat /tmp/session_start_words)
-else
-    start_words=0
+  start_words="$current_words"
 fi
 
-current_words=$(find manuscript/chapters -name "*.md" -exec wc -w {} + 2>/dev/null | tail -n 1 | awk '{print $1}' || echo "0")
 words_written=$((current_words - start_words))
+chapter_count="$(find manuscript/chapters -maxdepth 1 -type f -name 'chapter-*.md' | wc -l | tr -d ' ')"
 
-# Count tasks completed
-if [ -f automation/task.log ]; then
-    tasks_today=$(grep "$(date +%Y-%m-%d)" automation/task.log 2>/dev/null | wc -l)
-else
-    tasks_today=0
-fi
-
-# Count chapters
-total_chapters=$(ls manuscript/chapters/chapter-*.md 2>/dev/null | wc -l)
-
-# Generate summary file
 mkdir -p automation
-summary_file="automation/session-summary-$(date +%Y%m%d_%H%M%S).txt"
+printf '%s session=%s words_delta=%s total_words=%s chapters=%s\n' \
+  "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+  "$session_id" \
+  "$words_written" \
+  "$current_words" \
+  "$chapter_count" >> automation/sessions.log
 
-cat > "$summary_file" << SUMMARY_EOF
-SESSION SUMMARY
-===============
-Start: $session_start
-End: $session_end
-
-PROGRESS
---------
-Words Written: $words_written
-Tasks Completed: $tasks_today
-Total Words: $current_words
-Total Chapters: $total_chapters
-
-NEXT ACTIONS
-------------
-$(if [ -f planning/continuity-flag.txt ]; then cat planning/continuity-flag.txt; fi)
-$(if [ -f planning/planning-flag.txt ]; then cat planning/planning-flag.txt; fi)
-
-Generated: $(date)
-SUMMARY_EOF
-
-echo "   📄 Summary saved to: $summary_file"
-echo "   📝 Words written: $words_written"
-echo "   ✅ Tasks completed: $tasks_today"
-
-# Log session end
-echo "$(date): Session ended - $words_written words written" >> automation/sessions.log
-
-# Store current word count for next session
-echo "$current_words" > /tmp/session_start_words
-
-echo "✅ Session summary complete!"
+rm -f "$start_file"

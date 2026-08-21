@@ -1,429 +1,178 @@
-# Fantasy Novel Writing System v3.0 - System Architecture
+# System Architecture
 
-## 🏗️ Architectural Design Philosophy
+## Design goal
 
-The Fantasy Novel Writing System v3.0 implements a sophisticated multi-agent architecture designed around Claude's strengths while compensating for its limitations. The system uses proven software engineering principles adapted for AI-driven creative workflows.
+v4 is a file-backed orchestration layer for Claude Code. It separates creative specialization from deterministic maintenance:
 
-## 🎯 Core Architectural Principles
+- agents handle bounded reasoning and writing tasks
+- skills define repeatable workflows
+- hooks run maintenance at lifecycle boundaries
+- scripts derive state from files
+- manuscript prose remains the source of truth
 
-### 1. Repeated Reinforcement Pattern
-- **Critical behaviors reinforced 3+ times** throughout system prompts
-- **Tool usage patterns** embedded in multiple contexts
-- **System reminders** injected after key events
-- **Behavioral consistency** through repetitive instruction patterns
+## Claude Code primitives
 
-### 2. Natural Language Control Flow
-- **Workflow definitions** in descriptive text rather than code
-- **Decision trees** expressed in plain English
-- **Error handling** through narrative instructions
-- **State transitions** described conversationally
+### Custom subagents
 
-### 3. XML Semantic Structure
-- **Clear boundaries** with semantic markup tags
-- **Nested information architecture** for complex instructions
-- **Machine-parseable** yet human-readable format
-- **Hierarchical organization** of system components
+Agents live in:
 
-### 4. Self-Contained Sub-Agent Design
-- **Complete isolation** between agent layers
-- **Comprehensive context** in every task instruction
-- **Zero shared memory** between agents
-- **Autonomous operation** with detailed summaries
-
-### 5. Continuous Reminder Injection
-- **Post-event reinforcement** through automated hooks
-- **Context maintenance** without full prompt repetition
-- **Behavioral drift prevention** through strategic reminders
-- **Alignment preservation** across long sessions
-
-## 🤖 Multi-Agent Architecture
-
-### Master Orchestrator Layer
-
-The **Master Orchestrator** serves as the system's central intelligence, responsible for:
-
-#### Core Responsibilities
-- **Progress Assessment**: Continuous evaluation of novel state
-- **Action Determination**: Logical next-step selection
-- **Task Delegation**: Work distribution to specialized agents
-- **State Management**: Progress tracking and consistency maintenance
-- **Quality Assurance**: Standards enforcement and error correction
-
-#### Decision Framework
-```
-Assessment → Determination → Delegation → Execution → Validation → Loop
+```text
+.claude/agents/
 ```
 
-#### Key Capabilities
-- **Infinite Loop Operation**: Never stops until novel completion
-- **Self-Correction**: Automatic error recovery and alternative approaches
-- **Context Awareness**: Full understanding of story state and requirements
-- **Quality Control**: Built-in standards enforcement
+The main conversation delegates with the current `Agent` tool. v4 does not use `Task` in active instructions.
 
-### Specialized Sub-Agent Layer
+The seven project agents are:
 
-#### 🎭 Scene Writer Agent
-**Purpose**: Transform structural outlines into vivid, immersive prose
+| Agent | Responsibility |
+| --- | --- |
+| `chapter-writer` | Complete chapter drafting and substantive prose revision |
+| `plot-architect` | Structure, turning points, chapter beats, setup and payoff |
+| `character-developer` | Motivation, arcs, relationships, voice, knowledge |
+| `worldbuilder` | Setting rules, institutions, history, geography, systems |
+| `continuity-editor` | Cross-file consistency and contradiction auditing |
+| `smart-planner` | Pacing and next-action analysis |
+| `error-recovery` | Repository state, JSON, script, and configuration recovery |
 
-**Core Capabilities**:
-- **Sensory Immersion**: Rich, detailed environmental descriptions
-- **Character Voice**: Authentic dialogue and internal monologue
-- **Emotional Resonance**: Compelling character emotional journeys
-- **Pacing Control**: Dynamic scene rhythm and tension management
-- **Plot Advancement**: Story progression through scene events
+Agent frontmatter uses current tool names such as `Read`, `Glob`, `Grep`, `Write`, `Edit`, and `Bash`.
 
-**Input Requirements**:
-- POV character identification
-- Scene objectives and conflicts
-- Setting and atmospheric details
-- Word count targets
-- Continuity constraints
+Official reference:
 
-**Output Specifications**:
-- Complete, polished scene text (500-1500 words)
-- Comprehensive summary for orchestrator
-- Continuity notes for tracking
-- Plot advancement documentation
+https://code.claude.com/docs/en/sub-agents
 
-#### 🏛️ Plot Architect Agent
-**Purpose**: Design compelling story structures and manage narrative pacing
+### Project skills
 
-**Core Capabilities**:
-- **Story Structure**: Three-act framework implementation
-- **Subplot Management**: Multiple narrative thread coordination
-- **Tension Curves**: Escalation and release pattern design
-- **Chapter Planning**: Detailed scene-by-scene breakdowns
-- **Pacing Analysis**: Rhythm and momentum optimization
+Skills live in:
 
-**Input Requirements**:
-- Current story position
-- Active plot threads
-- Character arc status
-- Pacing needs
-- Thematic requirements
-
-**Output Specifications**:
-- Detailed chapter outlines
-- Scene-by-scene breakdowns
-- Tension and pacing notes
-- Character development plans
-- Future chapter preparation
-
-#### 🌍 Worldbuilder Agent
-**Purpose**: Create consistent, detailed fantasy settings and systems
-
-**Core Capabilities**:
-- **Magic System Design**: Rule-based supernatural frameworks
-- **Cultural Development**: Authentic society and custom creation
-- **Geographic Design**: Logical world geography and locations
-- **Historical Depth**: Rich backstory and timeline development
-- **Consistency Maintenance**: Internal logic preservation
-
-**Input Requirements**:
-- World element type needed
-- Story integration requirements
-- Existing world connections
-- Thematic considerations
-- Plot service needs
-
-**Output Specifications**:
-- Complete world element descriptions
-- Integration guidelines
-- Plot hook opportunities
-- Consistency rules and limitations
-- Visual/sensory detail libraries
-
-#### 👥 Character Developer Agent
-**Purpose**: Build psychologically authentic characters with compelling arcs
-
-**Core Capabilities**:
-- **Psychological Depth**: Complex, realistic personality construction
-- **Voice Development**: Unique dialogue patterns and speech characteristics
-- **Arc Design**: Character growth and transformation planning
-- **Relationship Dynamics**: Interpersonal connection management
-- **Consistency Tracking**: Character behavior and knowledge maintenance
-
-**Input Requirements**:
-- Character role in story
-- Key relationships needed
-- Growth requirements
-- Voice specifications
-- Background parameters
-
-**Output Specifications**:
-- Complete character profiles
-- Voice and dialogue samples
-- Character arc roadmaps
-- Relationship dynamics
-- Integration instructions
-
-#### ✅ Continuity Editor Agent
-**Purpose**: Maintain consistency across all story elements
-
-**Core Capabilities**:
-- **Timeline Tracking**: Event sequence and duration verification
-- **Character State**: Knowledge, emotion, and relationship monitoring
-- **World Consistency**: Rule adherence and logic verification
-- **Plot Thread Management**: Subplot tracking and resolution monitoring
-- **Error Detection**: Inconsistency identification and correction
-
-**Input Requirements**:
-- Content scope for review
-- Specific consistency concerns
-- Previous error patterns
-- Priority levels
-- Integration requirements
-
-**Output Specifications**:
-- Comprehensive inconsistency reports
-- Specific correction instructions
-- Priority-based issue classification
-- Prevention recommendations
-- Current state summaries
-
-## 🔄 System Interaction Patterns
-
-### Primary Workflow Loop
-
-```
-1. ASSESS → Read progress files and current state
-2. DETERMINE → Apply decision tree logic for next action
-3. DELEGATE → Use task tool with appropriate sub-agent
-4. EXECUTE → Sub-agent performs specialized work
-5. CAPTURE → Save outputs using Write tool
-6. UPDATE → Modify progress tracking files
-7. VALIDATE → Check for errors or issues
-8. LOOP → Return to step 1 without stopping
+```text
+.claude/skills/<skill-name>/SKILL.md
 ```
 
-### Task Delegation Pattern
+They provide the user-facing workflow layer:
 
-```
-Orchestrator Decision → Task Tool Invocation → Sub-Agent Processing → 
-Result Summary → Output Storage → Progress Update → Next Decision
-```
+- `/plan-novel`
+- `/write-chapter`
+- `/continuity-pass`
+- `/revise-chapter`
+- `/finalize-manuscript`
 
-### Error Recovery Mechanism
+Official reference:
 
-```
-Error Detection → Alternative Approach Selection → 
-Re-delegation with Modified Instructions → Validation → 
-Continuation or Further Iteration
-```
+https://code.claude.com/docs/en/skills
 
-## 📊 State Management Architecture
+### Output style
 
-### Persistent State Files
+The project output style lives at:
 
-#### `/planning/plot-progress.json`
-- Current chapter and scene position
-- Word count tracking
-- Chapter status monitoring
-- Next milestone identification
-- Last action documentation
-
-#### `/planning/chapter-status.json`
-- Individual chapter completion states
-- Word count per chapter
-- Status classifications (not_started, in_progress, complete)
-- Chapter quality metrics
-
-#### `/worldbuilding/world-state.json`
-- Established locations and their properties
-- Magic system rules and limitations
-- Cultural elements and their characteristics
-- Historical timeline and events
-- World consistency requirements
-
-#### `/characters/character-knowledge.json`
-- Character knowledge states by chapter
-- Relationship status tracking
-- Character belief systems
-- Growth and development milestones
-- Voice consistency markers
-
-### State Update Protocols
-
-- **Immediate Updates**: After every significant action
-- **Comprehensive Reviews**: Every 3 chapters
-- **Major Assessments**: Every 10 chapters
-- **Final Validation**: Pre-completion verification
-
-## 🔧 Automation Infrastructure
-
-### Automated Hook System
-
-#### PostToolUse Hooks
-- **Task Completion Reminders**: Reinforce continuous operation
-- **Write Confirmation**: Validate file storage
-- **Context Injection**: Maintain system awareness
-
-#### Session Management Hooks
-- **SessionStart**: Initialize system state and awareness
-- **Stop Prevention**: Automatic restart with continuation prompts
-
-#### Background Monitoring
-- **Progress Tracking**: Continuous state monitoring
-- **Dashboard Updates**: Real-time status visualization
-
-### Context Injection Mechanism
-
-The system uses automated context injection to maintain alignment:
-
-```
-System Event → Hook Trigger → Reminder Generation → 
-Context File Update → System Awareness Refresh
+```text
+.claude/output-styles/autonomous-novelist.md
 ```
 
-## 🛡️ Quality Assurance Framework
+It changes the main conversation from software-engineering defaults toward fiction work. Subagents use their own prompts.
 
-### Multi-Layer Quality Control
+Official reference:
 
-#### Agent-Level Quality
-- **Individual Standards**: Each agent maintains specific quality criteria
-- **Self-Validation**: Internal quality checklists before output
-- **Consistency Checks**: Agent-specific consistency requirements
+https://code.claude.com/docs/en/output-styles
 
-#### System-Level Quality
-- **Cross-Agent Validation**: Output verification across agents
-- **Global Standards**: System-wide quality requirements
-- **Progress Monitoring**: Quality maintenance across novel development
+### Hooks
 
-#### Automated Quality Enforcement
-- **Standard Embedding**: Quality requirements built into task instructions
-- **Continuous Monitoring**: Real-time quality assessment
-- **Automatic Correction**: Self-healing quality maintenance
+Hooks are configured in `.claude/settings.json`.
 
-### Quality Metrics
+#### SessionStart
 
-- **Word Count Targets**: Chapter and scene length requirements
-- **Dialogue Ratios**: Conversation vs. narrative balance
-- **Sensory Detail Density**: Descriptive element frequency
-- **Character Consistency**: Voice and behavior maintenance
-- **World Logic Adherence**: Fantasy rule compliance
-- **Plot Coherence**: Story logic and progression quality
+Runs `automation/session-init.sh`.
 
-## 🔮 Advanced System Features
+The script:
 
-### Adaptive Behavior
+- synchronizes tracking
+- runs a quick health check
+- captures starting word count for the session
+- prints a concise state summary that Claude Code adds to session context
 
-The system demonstrates emergent intelligence through:
-- **Dynamic Adaptation**: Response to story development needs
-- **Contextual Awareness**: Understanding of current story state
-- **Predictive Planning**: Anticipation of future story requirements
-- **Self-Optimization**: Improvement of processes over time
+#### SubagentStop: chapter-writer
 
-### Scalability Architecture
+Runs `automation/chapter-completed.sh`.
 
-- **Modular Design**: Easy addition of new agent types
-- **Configurable Parameters**: Adjustable quality and behavior standards
-- **Extensible Frameworks**: Support for different genres and styles
-- **Performance Optimization**: Efficient resource utilization
+`SubagentStop` matches agent type, which is the appropriate lifecycle event for chapter-writer completion.
 
-### Robustness Features
+The script:
 
-- **Error Resilience**: Graceful handling of unexpected situations
-- **Alternative Pathways**: Multiple approaches for problem resolution
-- **State Recovery**: Restoration from interruption or corruption
-- **Continuous Operation**: Uninterrupted generation capability
+- synchronizes state
+- runs writing-signal analysis on the latest chapter
+- logs a chapter that has reached full-draft length
+- creates periodic continuity and planning reminders
 
-## 🎯 Architectural Advantages
+#### PreCompact
 
-### Why This Architecture Works
+Runs the existing `automation/pre-compact-backup.sh` for automatic compaction.
 
-1. **Reliability Through Repetition**: Critical behaviors so deeply reinforced that system naturally gravitates toward them
-2. **Flexibility Through Natural Language**: Easy modification of behavior through text editing rather than code changes
-3. **Clarity Through Structure**: XML organization prevents instruction confusion and improves parsing
-4. **Autonomy Through Isolation**: Sub-agents work independently, preventing contamination and ensuring focused execution
-5. **Persistence Through Injection**: System reminders maintain alignment without expensive full prompt reprocessing
+#### SessionEnd
 
-### Performance Characteristics
+Runs `automation/session-summary.sh` and logs the session's net manuscript word change.
 
-- **High Consistency**: Minimal drift from intended behavior
-- **Robust Operation**: Resilient to interruption and error
-- **Quality Maintenance**: Automatic standard enforcement
-- **Efficient Resource Use**: Optimized token utilization
-- **Scalable Architecture**: Supports expansion and modification
+Official reference:
 
-## 📈 System Evolution
+https://code.claude.com/docs/en/hooks
 
-### Continuous Improvement
+## Why context-injection.txt was removed
 
-The architecture supports ongoing enhancement through:
-- **Agent Specialization**: Further refinement of sub-agent capabilities
-- **Quality Standard Evolution**: Improvement of output requirements
-- **Process Optimization**: Streamlining of workflow efficiency
-- **Feature Addition**: Integration of new capabilities
+v3 appended reminder strings to `.claude/context-injection.txt` after tool calls and made the orchestrator reread that file repeatedly.
 
-### Future Development Pathways
+That design had several drawbacks:
 
-- **Genre Expansion**: Adaptation to additional fiction types
-- **Collaboration Features**: Multi-user creative workflows
-- **Advanced Analytics**: Sophisticated quality and progress metrics
-- **Integration Capabilities**: Connection with external creative tools
+- unbounded repeated context
+- fragile dependency on stale tool names
+- duplicated instructions already present in project configuration
+- unnecessary file writes
+- no clear lifecycle ownership
 
-## 🚀 System Deployment
+v4 uses static instructions in `CLAUDE.md`, procedural instructions in skills, and lifecycle context from hooks.
 
-### Ready-to-Deploy Architecture
+## CLAUDE.md scope
 
-The system comes fully configured and ready for immediate use:
+`CLAUDE.md` contains only stable rules needed in most sessions. Multi-step procedures live in skills so startup context stays smaller and the workflows can evolve independently.
 
-```bash
-# Simple deployment workflow
-git clone https://github.com/forsonny/Claude-Code-Novel-Writer.git
-cd Claude-Code-Novel-Writer
-claude --dangerously-skip-permissions --continue
-```
+Official reference:
 
-### Configuration Management
+https://code.claude.com/docs/en/memory
 
-All system configurations are pre-configured and version-controlled:
-- **Master orchestrator**: `CLAUDE.md` contains complete instructions
-- **Sub-agent definitions**: `.claude/agents/` directory with all specialized agents
-- **Automation hooks**: `.claude/settings.json` with optimal hook configurations
-- **State templates**: Pre-configured JSON files for immediate operation
+## State model
 
-### Monitoring and Maintenance
+### Source of truth
 
-Built-in monitoring capabilities require no additional setup:
-- **Real-time dashboard**: `automation/dashboard.py` provides immediate insights
-- **Progress tracking**: JSON-based state management with automatic updates
-- **Quality assurance**: Built-in validation and error correction
-- **Performance monitoring**: Continuous system health assessment
+`manuscript/chapters/chapter-N.md` files are authoritative for drafted prose and actual word counts.
 
-## 🔧 Technical Implementation Details
+### Derived state
 
-### File System Organization
+`sync-state.sh` updates:
 
-```
-System Root/
-├── Core Configuration/           # Master system definitions
-│   ├── CLAUDE.md                # Central orchestrator
-│   └── .claude/                 # Agent and hook configurations
-├── Content Generation/          # Novel output and tracking
-│   ├── manuscript/              # Generated content
-│   ├── planning/                # Progress and state management
-│   ├── worldbuilding/          # World consistency tracking
-│   └── characters/             # Character development tracking
-├── Automation Layer/           # Monitoring and utilities
-│   └── automation/             # Dashboard and tools
-└── Documentation/              # System documentation
-```
+- `planning/chapter-status.json`
+- `planning/plot-progress.json`
 
-### Communication Protocols
+The synchronizer preserves user planning metadata such as title and target words where possible.
 
-- **Task Tool Interface**: Primary communication mechanism between orchestrator and agents
-- **JSON State Management**: Structured data exchange for progress tracking
-- **Context Injection**: Dynamic reminder system for behavioral alignment
-- **File-Based Persistence**: Durable state storage across sessions
+### Creative state
 
-### Error Handling Strategy
+These remain authored or semi-authored sources rather than purely derived data:
 
-- **Graceful Degradation**: System continues operation despite individual component failures
-- **Alternative Pathways**: Multiple approaches available for each type of task
-- **Self-Healing Mechanisms**: Automatic recovery from common error conditions
-- **State Reconstruction**: Ability to rebuild state from existing outputs
+- `planning/novel-outline.json`
+- `characters/`
+- `worldbuilding/`
 
----
+## Quality signals
 
-**The Fantasy Novel Writing System v3.0 architecture represents a breakthrough in autonomous creative AI, combining advanced prompt engineering techniques with robust system design to deliver reliable, high-quality creative output at scale.**
+`automation/quality-check.sh` measures:
+
+- word count
+- paragraph count
+- average and maximum paragraph length
+- approximate dialogue share
+- a few anomaly warnings
+
+The output explicitly labels these as mechanical signals, not a literary-quality score.
+
+## Permissions
+
+v4 relies on Claude Code's normal permission flow. It does not require bypass mode.
+
+Hooks should remain deterministic, quick, and reviewable. Creative decisions belong in the conversation and agents, not in shell scripts.

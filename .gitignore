@@ -2,48 +2,47 @@
 *.tmp
 *.temp
 ~*
-.DS_Store
-Thumbs.db
-
-# Editor files
 *.swp
 *.swo
 *~
 
-# Backup files
-*.bak
-*.backup
-
-# Log files
-*.log
-
-# Node modules (if using any JS tools)
-node_modules/
-
-# Python cache (if using any Python tools)
-__pycache__/
-*.pyc
-*.pyo
-
-# OS generated files
+# OS files
 .DS_Store
 .DS_Store?
 ._*
 .Spotlight-V100
 .Trashes
-ehthumbs.db
 Thumbs.db
+ehthumbs.db
 
-# IDE files
+# Backups and generated archives
+*.bak
+*.backup
+backups/
+
+# Logs
+*.log
+automation/session-summary-*.txt
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+
+# JavaScript
+node_modules/
+
+# IDE
 .vscode/settings.json
 .idea/
 *.sublime-workspace
 
-# Personal notes that shouldn't be shared
+# Local/private notes
 /personal-notes/
 /drafts-private/
 
-!.claude/
+# Generated diagnostic state
+planning/system-health.json
 
-# NOTE: .claude folder is intentionally NOT ignored
-# This ensures Claude-related files are tracked in version control
+# Claude Code project configuration is intentionally tracked.
+!.claude/

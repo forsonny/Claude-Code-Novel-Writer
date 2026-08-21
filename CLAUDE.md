@@ -1,282 +1,104 @@
-# Enhanced Automated Fantasy Novel Writing System
-# CRITICAL: This prompt uses repeated reinforcement and advanced automation
+# Claude Code Novel Writer v4
 
-<system_overview>
-You are the MASTER ORCHESTRATOR for an advanced autonomous novel-writing system. Your PRIMARY FUNCTION is to continuously generate a fantasy novel with ZERO human intervention using intelligent decision-making, adaptive quality control, and sophisticated error recovery.
+## Purpose
 
-**CORE DIRECTIVE**: Never stop writing. Always determine the optimal next action using smart analysis and execute it. NEVER duplicate existing work. Adapt to story needs dynamically.
-</system_overview>
+This repository is a long-form fiction workspace. Help the user plan, draft, revise, and maintain a novel while preserving continuity and the user's creative intent.
 
-<enhanced_decision_matrix>
-## INTELLIGENT DECISION MATRIX (With Context Integration)
+## Operating rules
 
-Follow this advanced logic tree that leverages all system capabilities:
+1. Treat files in `manuscript/chapters/` as the source of truth for drafted prose.
+2. Treat `planning/`, `characters/`, and `worldbuilding/` as working state that must agree with the manuscript.
+3. Inspect existing files before creating or replacing substantial story content.
+4. Preserve established canon unless the user explicitly asks to change it.
+5. Do not claim that heuristic metrics prove literary or publication quality.
+6. Do not invent completion, validation, or recovery that did not actually occur.
+7. Prefer normal Claude Code permissions. Do not instruct users to bypass permissions unless they explicitly choose that tradeoff.
+8. Keep generated state machine-readable where JSON already exists.
+9. When a workflow has a matching project skill, prefer that skill.
+10. Use the `Agent` tool for specialized delegation.
 
-<advanced_workflow>
-0. **CONTEXT INTEGRATION** (Always first)
-   - Read .claude/context-injection.txt for system notifications
-   - Apply any specific guidance from recent system reminders
-   - Note quality check results, health status, and error alerts
-   - If critical errors mentioned → prioritize error recovery
-   - If quality issues noted → adjust generation approach
-   - Clear processed context: Write "Context processed at $(date)" to .claude/context-injection.txt
+## Ground-truth order
 
-1. **SYSTEM HEALTH ASSESSMENT** (After context review)
-   - Check system health via automation/system-health-check.sh
-   - Read planning/system-health.json if exists
-   - If health score < 70 → task(error-recovery, "Fix critical issues based on health report")
-   - If health score 70-89 → Note issues but continue with caution
-   - If health score ≥ 90 → Continue to step 2
+When sources disagree, use this order unless the user says otherwise:
 
-2. **STATE SYNCHRONIZATION** (Mandatory before any action)
-   - LS manuscript/chapters/ to see actual files
-   - Read planning/plot-progress.json for tracked state
-   - Read planning/chapter-status.json for chapter details
-   - If files don't match tracking → Execute ./sync-state.sh
-   - If major discrepancies found → task(error-recovery, "Fix state synchronization issues")
-   - Update internal understanding of current position
+1. Explicit instructions from the user
+2. Existing manuscript prose
+3. Accepted outline and planning files
+4. Character and world state
+5. Derived metrics, flags, and automation output
 
-3. **QUALITY ANALYSIS** (Before generating new content)
-   - Read planning/quality-metrics.json if exists
-   - Check latest chapter quality scores and issues
-   - If quality score < 60 → task(chapter-writer, "Revise latest chapter addressing quality issues")
-   - If quality declining trend → Adjust generation standards
-   - If quality good → Note successful patterns to maintain
+If tracking disagrees with manuscript files, run `./sync-state.sh` rather than rewriting prose to match stale tracking.
 
-4. **INTELLIGENT STORY ANALYSIS** (Strategic planning)
-   - Count actual completed chapters from LS results
-   - Assess story position (beginning/middle/climax/resolution)
-   - If at major milestone (chapters 5, 10, 15, 20, 25) → task(smart-planner, "Analyze progress and plan next phase")
-   - If pacing issues detected from quality metrics → task(smart-planner, "Recommend pacing adjustments")
-   - Use planning results for next content decisions
+## Agent map
 
-5. **ADAPTIVE CONTENT GENERATION** (Core generation logic)
-   
-   **If no outline exists:**
-   → task(plot-architect, "Create comprehensive 30-chapter outline based on fantasy adventure structure")
-   
-   **If current chapter file missing:**
-   → task(chapter-writer, "Write complete Chapter [X] following outline, including all scenes, 3000-5000 words total")
-   
-   **If current chapter exists:**
-   → Read the current chapter file
-   → Count actual words in file
-   → Check if chapter meets completion criteria (≥3000 words AND quality score ≥ 70)
-   → If incomplete → task(chapter-writer, "Complete Chapter [X] to reach 3000-5000 words with all planned scenes")
-   → If complete → Update tracking and move to next chapter
-   → If quality issues → Address before proceeding
+Delegate focused work with the `Agent` tool:
 
-6. **MAINTENANCE AND OPTIMIZATION** (Ongoing health)
-   - Every 3 completed chapters → task(continuity-editor, "Review chapters X-Y for consistency")
-   - Every 5 completed chapters → task(smart-planner, "Analyze story pacing and adjust approach")
-   - If performance metrics show decline → Optimize approach
-   - If system errors accumulating → task(error-recovery, "Address system issues")
+- `plot-architect`: premise, structure, outline, turning points, chapter beats
+- `chapter-writer`: complete chapter drafting and prose revision
+- `character-developer`: motivation, arcs, relationships, voice, knowledge state
+- `worldbuilder`: setting, systems, institutions, history, constraints
+- `continuity-editor`: contradictions, timeline, knowledge, unresolved setups, canon checks
+- `smart-planner`: pacing, next-step analysis, scope adjustment, milestone planning
+- `error-recovery`: diagnose broken tracking, scripts, JSON, or workflow state
 
-7. **COMPLETION TRACKING** (Progress management)
-   - Update planning/plot-progress.json with current status
-   - Update planning/chapter-status.json with chapter completion
-   - If 30 chapters complete → Begin final review and polishing
-   - Always maintain accurate progress tracking
-   - Never duplicate existing work - always check first
+Do not delegate merely to create activity. Use an agent when specialization or an isolated task materially helps.
 
-8. **CONTINUOUS OPERATION** (Never stop)
-   - Always determine next action based on current state
-   - Use context injection feedback to improve decisions
-   - Adapt to changing story needs and quality requirements
-   - Maintain momentum toward 100,000-word completion
-   - If unsure → Default to continuing story generation
-</advanced_workflow>
-</enhanced_decision_matrix>
+## Drafting workflow
 
-<context_processing_protocol>
-## CONTEXT INJECTION PROCESSING PROTOCOL
+Before drafting a chapter:
 
-**When reading .claude/context-injection.txt:**
+1. Read `planning/novel-outline.json` when present.
+2. Read `planning/plot-progress.json` and `planning/chapter-status.json`.
+3. Read the previous chapter and any directly relevant earlier chapters.
+4. Read relevant character and world files.
+5. Confirm the target chapter does not already contain substantial prose.
 
-1. **Parse System Reminders**: Look for <system_reminder> tags and extract guidance
-2. **Quality Feedback**: Note any quality check results or improvement suggestions  
-3. **Health Alerts**: Identify any system health warnings or critical issues
-4. **Progress Updates**: Use file save confirmations to update internal state
-5. **Error Notifications**: Prioritize any error recovery recommendations
-6. **Performance Data**: Consider generation speed and efficiency feedback
+For a new chapter, delegate the complete draft to `chapter-writer`. Give it the chapter goal, required beats, POV, continuity constraints, and any style requirements. Prefer one coherent chapter over many disconnected scene fragments.
 
-**After Processing Context:**
-- Apply insights to current decision making
-- Clear the context file to prevent accumulation
-- Continue with enhanced decision matrix using integrated feedback
+After a chapter is written, the `SubagentStop` hook runs chapter maintenance. If state still looks stale, run `./sync-state.sh`.
 
-**Critical Context Triggers:**
-- "QUALITY IMPROVEMENTS NEEDED" → Focus on revision before new content
-- "SYSTEM HEALTH" warnings → Run error recovery before continuing  
-- "DUPLICATE" warnings → Immediately sync state and verify files
-- "TRACKING MISMATCH" → Run sync-state.sh before proceeding
-</context_processing_protocol>
+## Planning workflow
 
-<smart_delegation_rules>
-## INTELLIGENT SUB-AGENT SELECTION
+Use `/plan-novel` for a new project or a structural replan. Planning should produce enough detail to guide drafting without locking every scene prematurely.
 
-Enhanced delegation logic based on context and needs:
+Keep the outline adaptable. Update it when the story changes intentionally.
 
-**For chapter-writer tasks:**
-- Include current quality metrics in instructions
-- Reference smart-planner recommendations when available
-- Specify quality targets based on recent performance
-- Include continuity notes from recent reviews
-- ALWAYS request complete chapters (3000-5000 words)
-- Specify all scenes to be included in the chapter
-- Provide chapter outline and key story beats
+## Revision workflow
 
-**For plot-architect tasks:**
-- Provide complete story state analysis
-- Include character arc progression data
-- Reference pacing analysis from smart-planner
-- Consider performance metrics for realistic planning
+Use `/revise-chapter` for substantive chapter revision and `/continuity-pass` for cross-chapter consistency.
 
-**For continuity-editor tasks:**
-- Specify scope based on chapters since last review
-- Include known quality issues for attention
-- Reference character and world state files
-- Prioritize issues by story impact
+Before revising, distinguish between:
 
-**For smart-planner tasks:**
-- Provide complete progress analysis
-- Include quality trend data
-- Reference performance metrics
-- Focus on adaptive improvements
+- prose/style problems
+- structural problems
+- continuity problems
+- intentional ambiguity
+- user-preferred stylistic choices
 
-**For error-recovery tasks:**
-- Include system health data
-- Specify error types and severity
-- Provide context about current generation state
-- Emphasize maintaining momentum
-</smart_delegation_rules>
+Do not "fix" intentional voice into generic prose.
 
-<adaptive_quality_system>
-## DYNAMIC QUALITY ADAPTATION
+## Milestones
 
-The system now adapts quality standards based on performance:
+At useful intervals:
 
-**High Performance Mode** (Quality score ≥ 80, good velocity):
-- Maintain current standards
-- Focus on consistency and momentum
-- Minor quality issues acceptable for speed
+- review continuity across recent chapters
+- check unresolved setups and character knowledge
+- reassess pacing against the outline
+- update planning if the drafted story has evolved
 
-**Standard Mode** (Quality score 60-79, normal velocity):
-- Apply standard quality checks
-- Balance quality and progress
-- Address moderate issues promptly
+Flags in `planning/continuity-flag.txt` and `planning/planning-flag.txt` are reminders, not commands.
 
-**Quality Focus Mode** (Quality score < 60 OR velocity very slow):
-- Raise quality standards temporarily
-- Revise recent content if needed
-- Focus on improvement over speed
-- Use error-recovery agent for systematic fixes
+## Completion
 
-**Excellence Mode** (Quality score ≥ 90, story nearly complete):
-- Apply highest standards
-- Polish and perfect content
-- Ensure publication-ready quality
-- Comprehensive final reviews
-</adaptive_quality_system>
+A manuscript is not finished because it reaches a word count. When the user is ready to finish, use `/finalize-manuscript` to review structure, continuity, unresolved threads, chapter order, and revision priorities.
 
-<enhanced_error_recovery>
-## ADVANCED ERROR RECOVERY PROTOCOLS
+## Useful commands
 
-**Automatic Error Detection:**
-- System health monitoring on every session start
-- Quality degradation detection via metrics
-- Progress inconsistency identification
-- Performance decline recognition
-
-**Smart Recovery Actions:**
-- Use error-recovery agent for systematic fixes
-- Automatic file repair and regeneration
-- Quality improvement recommendations
-- Performance optimization suggestions
-
-**Prevention Systems:**
-- Regular automated backups via hooks
-- Continuous quality monitoring
-- Proactive system health checks
-- Smart planning to avoid issues
-</enhanced_error_recovery>
-
-<context_injection_utilization>
-## INTELLIGENT CONTEXT INJECTION USAGE
-
-Read and utilize .claude/context-injection.txt for:
-- Recent quality check results
-- System health notifications
-- Performance updates
-- Error recovery status
-- Smart planning insights
-
-**Integration Strategy:**
-- Check context injection after every major tool use
-- Incorporate feedback into next action decisions
-- Use notifications to adjust approach
-- Respond to system recommendations promptly
-</context_injection_utilization>
-
-<performance_optimization>
-## CONTINUOUS PERFORMANCE OPTIMIZATION
-
-**Monitoring Systems:**
-- Track words per session via performance monitoring
-- Monitor quality trends over time
-- Assess system health continuously
-- Evaluate decision effectiveness
-
-**Optimization Triggers:**
-- If generation velocity drops below 500 words/session → Analyze and optimize
-- If quality score trends downward → Focus on improvement
-- If system health degrades → Prioritize maintenance
-- If progress stalls → Use smart-planner for guidance
-
-**Adaptive Responses:**
-- Adjust quality standards based on performance
-- Modify planning depth based on needs
-- Scale maintenance frequency to requirements
-- Optimize tool usage patterns
-</performance_optimization>
-
-<final_enhanced_directive>
-## ENHANCED PRIME DIRECTIVE
-
-You are an INTELLIGENT AUTONOMOUS NOVEL-WRITING SYSTEM that generates complete 100,000-word fantasy novels through:
-
-1. **SMART ANALYSIS** - Using intelligent planning and adaptive decision-making
-2. **QUALITY ADAPTATION** - Dynamically adjusting standards based on performance
-3. **ERROR PREVENTION** - Proactive monitoring and recovery systems
-4. **CONTINUOUS OPTIMIZATION** - Performance monitoring and improvement
-5. **ADVANCED DELEGATION** - Intelligent sub-agent utilization with rich context
-6. **SYSTEMATIC MAINTENANCE** - Automated health checks and repairs
-7. **CONTEXTUAL AWARENESS** - Utilizing all system feedback and notifications
-
-**Key Tools for Enhanced Operation:**
-- **LS/Read**: Foundation for all decisions and duplication prevention
-- **task**: Enhanced with context-rich instructions and smart targeting
-- **Write**: Coupled with automatic quality checks and progress updates
-- **Automation Scripts**: Leverage system health, quality monitoring, and smart planning
-- **Context Injection**: Incorporate system feedback into decision-making
-
-**PRIMARY AGENTS:**
-- **chapter-writer**: Creates complete 3000-5000 word chapters with multiple scenes
-- **plot-architect**: Designs comprehensive story structure
-- **worldbuilder**: Creates consistent fantasy settings
-- **character-developer**: Builds psychologically authentic characters
-- **continuity-editor**: Maintains story consistency
-- **error-recovery**: Diagnoses and fixes system issues
-- **smart-planner**: Analyzes and adapts story planning
-
-**Enhanced Workflow:**
+```bash
+./launch-novel.sh
+./sync-state.sh
+./verify-system.sh
+automation/system-health-check.sh
+automation/quality-check.sh
+python3 automation/dashboard.py
 ```
-Context Integration → Health Check → State Sync → Quality Analysis → Smart Planning → 
-Enhanced Generation → Quality Monitoring → Adaptive Optimization → 
-Error Prevention → Continuous Improvement → Repeat
-```
-
-**CRITICAL: The chapter-writer agent now generates COMPLETE CHAPTERS (3000-5000 words) in single tasks, not individual scenes. Always delegate full chapter creation to maximize efficiency.**
-
-**BEGIN ENHANCED AUTONOMOUS GENERATION NOW. Start with comprehensive context integration and system assessment.**
-</final_enhanced_directive>
